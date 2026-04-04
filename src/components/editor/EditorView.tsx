@@ -3,11 +3,11 @@ import { useAuth } from '../auth/AuthProvider';
 import { useNotes, fetchUserProfile } from '../../lib/hooks';
 import { TipTapEditor } from './TipTapEditor';
 import { BIBLE_BOOKS } from '../../lib/bibleBooks';
-import { Save, Calendar, User, Book as BookIcon, Hash, FolderOpen, ChevronUp, ChevronDown } from 'lucide-react';
+import { Save, Calendar, User, Book as BookIcon, Hash, FolderOpen, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
 
 export function EditorView({ existingNoteId, onSaved }: { existingNoteId?: string, onSaved?: () => void }) {
   const { user } = useAuth();
-  const { addNote, updateNote, notes } = useNotes();
+  const { addNote, updateNote, removeNote, notes } = useNotes();
   const [knownPreachers, setKnownPreachers] = useState<string[]>([]);
   
   // Note state
@@ -24,6 +24,13 @@ export function EditorView({ existingNoteId, onSaved }: { existingNoteId?: strin
   const [isSaving, setIsSaving] = useState(false);
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // Refs for auto-save (to avoid stale closures on unmount)
+  const lastState = useRef({ title, preacher, sermonDate, seriesTitle, isPublic, content, verses: versesText.split(',').map(v => v.trim()).filter(Boolean), tags, existingNoteId });
+  
+  useEffect(() => {
+    lastState.current = { title, preacher, sermonDate, seriesTitle, isPublic, content, verses: versesText.split(',').map(v => v.trim()).filter(Boolean), tags, existingNoteId };
+  }, [title, preacher, sermonDate, seriesTitle, isPublic, content, versesText, tags, existingNoteId]);
 
   // Load existing note or user profile
   useEffect(() => {
@@ -71,6 +78,41 @@ export function EditorView({ existingNoteId, onSaved }: { existingNoteId?: strin
       setIsHeaderCollapsed(true);
     } else if (e.currentTarget.scrollTop === 0 && isHeaderCollapsed) {
       setIsHeaderCollapsed(false);
+    }
+  };
+
+  // Auto-save on unmount
+  useEffect(() => {
+    return () => {
+      const state = lastState.current;
+      // Only auto-save if there's at least a title
+      if (!state.title.trim()) return;
+      
+      const payload = {
+        title: state.title,
+        preacher: state.preacher,
+        sermonDate: new Date(state.sermonDate),
+        seriesTitle: state.seriesTitle,
+        isPublic: state.isPublic,
+        content: state.content,
+        verses: state.verses,
+        tags: state.tags,
+        imageUrls: [] // Required by schema
+      };
+
+      if (state.existingNoteId) {
+        updateNote(state.existingNoteId, payload).catch(console.error);
+      } else {
+        addNote(payload).catch(console.error);
+      }
+    };
+  }, [addNote, updateNote]);
+
+  const handleDelete = async () => {
+    if (!existingNoteId) return;
+    if (window.confirm('Are you sure you want to delete this sermon note?')) {
+      await removeNote(existingNoteId);
+      if (onSaved) onSaved();
     }
   };
 
@@ -209,14 +251,25 @@ export function EditorView({ existingNoteId, onSaved }: { existingNoteId?: strin
               Publish to Public Feed
             </label>
             
-            <button 
-              onClick={handleSave} 
-              disabled={isSaving}
-              className="flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-lg shadow-md font-medium hover:scale-[1.03] active:scale-95 transition-transform"
-            >
-              <Save className="w-4 h-4" />
-              {isSaving ? 'Saving...' : 'Save Notes'}
-            </button>
+            <div className="flex items-center gap-3">
+              {existingNoteId && (
+                <button 
+                  onClick={handleDelete}
+                  className="flex items-center gap-2 px-4 py-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors font-medium text-sm"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">Delete</span>
+                </button>
+              )}
+              <button 
+                onClick={handleSave} 
+                disabled={isSaving}
+                className="flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-lg shadow-md font-medium hover:scale-[1.03] active:scale-95 transition-transform"
+              >
+                <Save className="w-4 h-4" />
+                {isSaving ? 'Saving...' : 'Save Notes'}
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -22,8 +22,16 @@ function AppContent() {
     setActiveTab('write');
   };
 
+  const handleNewNote = () => {
+    setEditingNoteId(undefined);
+    setActiveTab('write');
+  };
+
   return (
-    <AppShell activeTab={activeTab} setActiveTab={setActiveTab}>
+    <AppShell activeTab={activeTab} setActiveTab={(tab) => {
+      if (tab === 'write') handleNewNote();
+      else setActiveTab(tab);
+    }}>
       {activeTab === 'home' && <LibraryView onEditNote={handleEditNote} />}
       {activeTab === 'community' && <CommunityFeed />}
       {activeTab === 'write' && (
