@@ -1,12 +1,16 @@
 import { useState, useMemo } from 'react';
 import { useNotes } from '../../lib/hooks';
 import type { Note } from '../../lib/types';
-import { Calendar, User, FolderOpen, Heart, Globe, Lock } from 'lucide-react';
+import { Calendar, User, FolderOpen, Globe, Lock, CheckSquare, Square, Trash2, CheckCircle2 } from 'lucide-react';
 
 export function LibraryView({ onEditNote }: { onEditNote: (noteId: string) => void }) {
-  const { notes, loading } = useNotes();
+  const { notes, loading, removeNote } = useNotes();
   const [filter, setFilter] = useState('');
   const [groupBy, setGroupBy] = useState<'none' | 'series' | 'preacher'>('none');
+  
+  // Selection State
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const filteredNotes = notes.filter(n => {
     if (!filter) return true;
@@ -39,6 +43,34 @@ export function LibraryView({ onEditNote }: { onEditNote: (noteId: string) => vo
     }
   }, [groupBy, filteredNotes]);
 
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredNotes.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredNotes.map(n => n.docId!)));
+    }
+  };
+
+  const toggleSelectNote = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) newSelected.delete(id);
+    else newSelected.add(id);
+    setSelectedIds(newSelected);
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (window.confirm(`Are you sure you want to delete ${selectedIds.size} sermon notes?`)) {
+      for (const id of selectedIds) {
+        await removeNote(id);
+      }
+      setSelectedIds(new Set());
+      setIsSelectionMode(false);
+      alert('Deletion complete!');
+    }
+  };
+
   if (loading) {
     return <div className="flex h-full items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>;
   }
@@ -52,31 +84,44 @@ export function LibraryView({ onEditNote }: { onEditNote: (noteId: string) => vo
     );
   }
 
-  const NoteCard = ({ note }: { note: Note }) => (
-    <div 
-      onClick={() => onEditNote(note.docId!)}
-      className="bg-card border border-border rounded-xl p-5 shadow-sm hover:shadow-md hover:border-primary/50 transition-all cursor-pointer flex flex-col gap-3 group"
-    >
-      <div className="flex justify-between items-start">
-        <h3 className="font-bold text-lg text-foreground line-clamp-2 leading-tight group-hover:text-primary transition-colors">{note.title}</h3>
-        {note.isPublic ? <span title="Public"><Globe className="w-4 h-4 text-primary shrink-0" /></span> : <span title="Private"><Lock className="w-4 h-4 text-muted-foreground shrink-0" /></span>}
-      </div>
-      
-      <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground font-medium">
-        <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {note.sermonDate.toLocaleDateString()}</span>
-        {note.preacher && <span className="flex items-center gap-1.5"><User className="w-3.5 h-3.5" /> {note.preacher}</span>}
-        {note.seriesTitle && <span className="flex items-center gap-1.5"><FolderOpen className="w-3.5 h-3.5" /> {note.seriesTitle}</span>}
-        {note.heartCount > 0 && <span className="flex items-center gap-1.5 text-destructive"><Heart className="w-3.5 h-3.5 fill-current" /> {note.heartCount}</span>}
-      </div>
-
-      {(note.verses.length > 0 || note.tags.length > 0) && (
-        <div className="flex flex-wrap gap-1.5 mt-auto pt-2">
-          {note.verses.slice(0, 3).map(v => <span key={v} className="px-2 py-0.5 bg-secondary text-secondary-foreground rounded text-[10px] uppercase font-bold tracking-wider">{v}</span>)}
-          {note.tags.map(t => <span key={t} className="px-2 py-0.5 text-primary bg-primary/5 rounded-full text-[10px] font-semibold">#{t}</span>)}
+  const NoteCard = ({ note }: { note: Note }) => {
+    const isSelected = selectedIds.has(note.docId!);
+    
+    return (
+      <div 
+        onClick={() => isSelectionMode ? toggleSelectNote({ stopPropagation: () => {} } as any, note.docId!) : onEditNote(note.docId!)}
+        className={`bg-card border rounded-xl p-5 shadow-sm transition-all cursor-pointer flex flex-col gap-3 group relative overflow-hidden ${isSelected ? 'border-primary ring-1 ring-primary' : 'border-border hover:shadow-md hover:border-primary/50'}`}
+      >
+        {isSelectionMode && (
+          <div className="absolute top-2 right-2 z-10">
+            {isSelected ? (
+              <CheckCircle2 className="w-5 h-5 text-primary fill-primary-foreground" />
+            ) : (
+              <Square className="w-5 h-5 text-muted-foreground opacity-50" />
+            )}
+          </div>
+        )}
+        
+        <div className="flex justify-between items-start">
+          <h3 className="font-bold text-lg text-foreground line-clamp-2 leading-tight group-hover:text-primary transition-colors pr-6">{note.title}</h3>
+          {!isSelectionMode && (note.isPublic ? <Globe className="w-4 h-4 text-primary shrink-0" /> : <Lock className="w-4 h-4 text-muted-foreground shrink-0" />)}
         </div>
-      )}
-    </div>
-  );
+        
+        <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground font-medium">
+          <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {note.sermonDate.toLocaleDateString()}</span>
+          {note.preacher && <span className="flex items-center gap-1.5"><User className="w-3.5 h-3.5" /> {note.preacher}</span>}
+          {note.seriesTitle && <span className="flex items-center gap-1.5"><FolderOpen className="w-3.5 h-3.5" /> {note.seriesTitle}</span>}
+        </div>
+
+        {(note.verses.length > 0 || note.tags.length > 0) && (
+          <div className="flex flex-wrap gap-1.5 mt-auto pt-2">
+            {note.verses.slice(0, 3).map(v => <span key={v} className="px-2 py-0.5 bg-secondary text-secondary-foreground rounded text-[10px] uppercase font-bold tracking-wider">{v}</span>)}
+            {note.tags.map(t => <span key={t} className="px-2 py-0.5 text-primary bg-primary/5 rounded-full text-[10px] font-semibold">#{t}</span>)}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="flex flex-col h-full bg-background p-4 md:p-8 animate-in fade-in duration-500">
@@ -85,7 +130,7 @@ export function LibraryView({ onEditNote }: { onEditNote: (noteId: string) => vo
           <h2 className="text-3xl font-bold text-foreground tracking-tight">Library</h2>
           <p className="text-sm text-muted-foreground">{filteredNotes.length} sermons</p>
         </div>
-        <div className="flex gap-3 w-full md:w-auto">
+        <div className="flex gap-2 w-full md:w-auto">
           <input 
             type="text" 
             placeholder="Search notes, tags..." 
@@ -102,8 +147,39 @@ export function LibraryView({ onEditNote }: { onEditNote: (noteId: string) => vo
             <option value="series">By Series</option>
             <option value="preacher">By Preacher</option>
           </select>
+          <button 
+            onClick={() => {
+              setIsSelectionMode(!isSelectionMode);
+              setSelectedIds(new Set());
+            }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isSelectionMode ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+          >
+            {isSelectionMode ? 'Cancel' : 'Select'}
+          </button>
         </div>
       </div>
+
+      {isSelectionMode && (
+        <div className="flex items-center justify-between bg-primary/5 border border-primary/20 p-4 rounded-xl mb-6 animate-in slide-in-from-top duration-300">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={toggleSelectAll}
+              className="flex items-center gap-2 text-sm font-semibold text-primary"
+            >
+              {selectedIds.size === filteredNotes.length ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+              {selectedIds.size === filteredNotes.length ? 'Deselect All' : 'Select All'}
+            </button>
+            <span className="text-sm font-medium text-muted-foreground">{selectedIds.size} selected</span>
+          </div>
+          <button 
+            onClick={handleBulkDelete}
+            disabled={selectedIds.size === 0}
+            className="flex items-center gap-2 bg-destructive text-destructive-foreground px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-destructive/90 disabled:opacity-50 disabled:grayscale transition-all"
+          >
+            <Trash2 className="w-4 h-4" /> Delete Selected
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-col gap-8 pb-20">
         {groupedNotes.map(group => (
