@@ -66,8 +66,19 @@ export default defineConfig([
         project: ['./tsconfig.node.json', './tsconfig.app.json'],
         tsconfigRootDir: import.meta.dirname,
       },
+      },
       // other options...
     },
   },
 ])
 ```
+
+## Future Roadmap
+
+The following high-impact features are slated for future development to specifically empower the church-going audience:
+
+1. **Auto-Populating Bible Verses (API Integration):** Fetches actual scripture text automatically via API whenever a verse tag like `John 3:16` is typed, rendering rich tooltips globally.
+2. **Dedicated "Sermon Series" Binders:** Visually groups Library notes into sequential "Folders" based on their series title.
+3. **Advanced Offline-First Architecture:** Formalized `IndexedDB` queuing to sustain complete usability during zero-connectivity scenarios inside church buildings.
+4. **AI-Powered "Action Steps" & Reflections:** LLM-driven endpoints to compress notes into theological summaries and generate 3 personal application questions for the week.
+5. **Quick-Capture Media Attachments:** Native integrations providing fast camera/microphone hooks to easily embed projector slide photos or audio snippets into markdown notes.

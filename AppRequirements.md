@@ -64,3 +64,20 @@ A specialized Progressive Web App (PWA) for taking sermon notes. It must be high
     }
   }
 }
+
+## 5. Future Roadmap
+
+### 1. Auto-Populating Bible Verses (API Integration)
+* Use a free Scripture API (like Bible-API.com or ESV API) to actively fetch and embed verse text instantly when a standard verse tag (e.g., `John 3:16`) is typed, enabling rich hover tooltips without leaving the editor.
+
+### 2. Dedicated "Sermon Series" Binders
+* Group notes in the Library visually into virtual "Folders" or "Binders" based on `seriesTitle`, letting users easily flip chronologically through a structured message series.
+
+### 3. Advanced Offline-First Architecture
+* Bolster PWA constraints by aggressively queueing note edits directly into local `IndexedDB` when network is completely severed (often the case in church buildings), and auto-syncing seamlessly to Firebase the moment service returns.
+
+### 4. AI-Powered "Action Steps" & Reflections
+* Introduce an on-demand LLM integration (OpenAI/Gemini) that distills written notes into a 2-sentence theological summary, 3 personal application questions, and a suggested prayer to encourage weekly engagement.
+
+### 5. Quick-Capture Media Attachments
+* Introduce a specialized component for rapid camera/microphone access, allowing users to embed photos of projector slides or quick audio snippets directly into their markdown documents during fast-paced sermons.
