@@ -66,6 +66,7 @@ export function GraphView({ onNodeClick }: { onNodeClick?: (noteId: string) => v
     };
 
     const extractBook = (verseStr: string) => {
+      if (!verseStr || typeof verseStr !== 'string') return '';
       const match = verseStr.match(/^(\d\s+)?[a-zA-Z\s]+/);
       return match ? match[0].trim() : verseStr.trim();
     };
@@ -76,7 +77,7 @@ export function GraphView({ onNodeClick }: { onNodeClick?: (noteId: string) => v
       processedNotes = processedNotes.filter(n => n.preacher && selectedPreachers.has(n.preacher));
     }
     if (selectedTags.size > 0) {
-      processedNotes = processedNotes.filter(n => n.tags.some(t => selectedTags.has(t.toLowerCase())));
+      processedNotes = processedNotes.filter(n => (n.tags || []).some(t => typeof t === 'string' && selectedTags.has(t.toLowerCase())));
     }
 
     if (focusedNoteId) {
@@ -84,15 +85,15 @@ export function GraphView({ onNodeClick }: { onNodeClick?: (noteId: string) => v
       if (focusNote) {
         const connectedPreacher = focusNote.preacher;
         const connectedSeries = focusNote.seriesTitle;
-        const connectedTags = new Set(focusNote.tags.map(t => t.toLowerCase()));
-        const connectedVerses = new Set(focusNote.verses.map(extractBook));
+        const connectedTags = new Set((focusNote.tags || []).map(t => typeof t === 'string' ? t.toLowerCase() : ''));
+        const connectedVerses = new Set((focusNote.verses || []).map(extractBook));
 
         processedNotes = processedNotes.filter(n => {
           if (n.docId === focusedNoteId) return true;
           if (connectedPreacher && n.preacher === connectedPreacher && showPreachers) return true;
           if (connectedSeries && n.seriesTitle === connectedSeries && showSeries) return true;
-          if (showTags && n.tags.some(t => connectedTags.has(t.toLowerCase()))) return true;
-          if (showVerses && n.verses.some(v => connectedVerses.has(extractBook(v)))) return true;
+          if (showTags && (n.tags || []).some(t => typeof t === 'string' && connectedTags.has(t.toLowerCase()))) return true;
+          if (showVerses && (n.verses || []).some(v => connectedVerses.has(extractBook(v)))) return true;
           return false;
         });
       }
@@ -116,7 +117,7 @@ export function GraphView({ onNodeClick }: { onNodeClick?: (noteId: string) => v
       }
 
       if (showTags) {
-        const uniqueTags = Array.from(new Set(note.tags.map(t => t.toLowerCase())));
+        const uniqueTags = Array.from(new Set((note.tags || []).map(t => typeof t === 'string' ? t.toLowerCase() : ''))).filter(Boolean);
         uniqueTags.forEach(tag => {
           const tagId = `tag_${tag}`;
           addNode(tagId, `#${tag}`, 'tag', '#22c55e');
@@ -125,7 +126,7 @@ export function GraphView({ onNodeClick }: { onNodeClick?: (noteId: string) => v
       }
 
       if (showVerses) {
-        const uniqueBooks = Array.from(new Set(note.verses.map(extractBook)));
+        const uniqueBooks = Array.from(new Set((note.verses || []).map(extractBook))).filter(Boolean);
         uniqueBooks.forEach(book => {
           const verseId = `verse_${book}`;
           addNode(verseId, book, 'verse', '#eab308');
