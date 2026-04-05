@@ -130,32 +130,34 @@ export function LibraryView({ onEditNote }: { onEditNote: (noteId: string) => vo
           <h2 className="text-3xl font-bold text-foreground tracking-tight">Library</h2>
           <p className="text-sm text-muted-foreground">{filteredNotes.length} sermons</p>
         </div>
-        <div className="flex gap-2 w-full md:w-auto">
+        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
           <input 
             type="text" 
             placeholder="Search notes, tags..." 
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="flex-1 rounded-lg border border-input bg-background/50 px-4 py-2 text-sm max-w-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all shadow-inner"
+            className="w-full sm:w-auto sm:flex-1 rounded-lg border border-input bg-background/50 px-4 py-2 text-sm max-w-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all shadow-inner"
           />
-          <select 
-            value={groupBy}
-            onChange={(e) => setGroupBy(e.target.value as any)}
-            className="rounded-lg border border-input bg-background/50 px-3 py-2 text-sm focus:ring-primary focus:border-primary outline-none"
-          >
-            <option value="none">Timeline</option>
-            <option value="series">By Series</option>
-            <option value="preacher">By Preacher</option>
-          </select>
-          <button 
-            onClick={() => {
-              setIsSelectionMode(!isSelectionMode);
-              setSelectedIds(new Set());
-            }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isSelectionMode ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
-          >
-            {isSelectionMode ? 'Cancel' : 'Select'}
-          </button>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <select 
+              value={groupBy}
+              onChange={(e) => setGroupBy(e.target.value as any)}
+              className="flex-1 sm:flex-none rounded-lg border border-input bg-background/50 px-3 py-2 text-sm focus:ring-primary focus:border-primary outline-none"
+            >
+              <option value="none">Timeline</option>
+              <option value="series">By Series</option>
+              <option value="preacher">By Preacher</option>
+            </select>
+            <button 
+              onClick={() => {
+                setIsSelectionMode(!isSelectionMode);
+                setSelectedIds(new Set());
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${isSelectionMode ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+            >
+              {isSelectionMode ? 'Cancel' : 'Select'}
+            </button>
+          </div>
         </div>
       </div>
 
