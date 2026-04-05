@@ -35,46 +35,87 @@ function AppContent() {
       try {
         const file = files[i];
         const text = await file.text();
+        const isCSV = file.name.toLowerCase().endsWith('.csv');
         
-        // Basic YAML Frontmatter Parser
-        const frontmatterMatch = text.match(/^---\s*([\s\S]*?)\s*---/);
-        const content = text.replace(/^---\s*[\s\S]*?\s*---/, '').trim();
-        const properties: Record<string, any> = {};
-        
-        if (frontmatterMatch) {
-          const lines = frontmatterMatch[1].split('\n');
+        if (isCSV) {
+          // Robust CSV Parser (handles quotes and commas)
+          const rows: string[][] = [];
+          const lines = text.split(/\r?\n/);
           lines.forEach(line => {
-            const [key, ...valParts] = line.split(':');
-            if (key && valParts.length > 0) {
-              let val = valParts.join(':').trim();
-              // Clean up quotes and arrays
-              val = val.replace(/^["']|["']$/g, '');
-              if (val.startsWith('[') && val.endsWith(']')) {
-                properties[key.trim()] = val.slice(1, -1).split(',').map(s => s.trim().replace(/^["']|["']$/g, ''));
-              } else {
-                properties[key.trim()] = val;
+            if (!line.trim()) return;
+            const matches = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+            if (matches) rows.push(matches.map(m => m.replace(/^"|"$/g, '').trim()));
+          });
+
+          if (rows.length < 2) continue;
+          const headers = rows[0].map(h => h.toLowerCase());
+          
+          for (let r = 1; r < rows.length; r++) {
+            const row = rows[r];
+            const getVal = (possibleHeaders: string[]) => {
+              const idx = headers.findIndex(h => possibleHeaders.includes(h));
+              return idx !== -1 ? row[idx] : undefined;
+            };
+
+            const title = getVal(['title', 'name', 'headline']) || `Imported Note ${r}`;
+            const content = getVal(['content', 'body', 'text', 'notes']) || '';
+            const preacher = getVal(['preacher', 'speaker', 'author']) || '';
+            const rawDate = getVal(['date', 'sermondate', 'created', 'date created']) || new Date().toISOString();
+            const tags = (getVal(['tags', 'categories']) || '').split(/[,;]/).map(t => t.trim().replace(/^#/, '')).filter(Boolean);
+            
+            const sermonDate = new Date(rawDate);
+
+            await addNote({
+              title,
+              preacher,
+              sermonDate: isFinite(sermonDate.getTime()) ? sermonDate : new Date(),
+              content,
+              tags,
+              verses: [],
+              isPublic: false,
+              imageUrls: [],
+            });
+          }
+        } else {
+          // Basic YAML Frontmatter Parser (Markdown)
+          const frontmatterMatch = text.match(/^---\s*([\s\S]*?)\s*---/);
+          const content = text.replace(/^---\s*[\s\S]*?\s*---/, '').trim();
+          const properties: Record<string, any> = {};
+          
+          if (frontmatterMatch) {
+            const lines = frontmatterMatch[1].split('\n');
+            lines.forEach(line => {
+              const [key, ...valParts] = line.split(':');
+              if (key && valParts.length > 0) {
+                let val = valParts.join(':').trim();
+                val = val.replace(/^["']|["']$/g, '');
+                if (val.startsWith('[') && val.endsWith(']')) {
+                  properties[key.trim()] = val.slice(1, -1).split(',').map(s => s.trim().replace(/^["']|["']$/g, ''));
+                } else {
+                  properties[key.trim()] = val;
+                }
               }
-            }
+            });
+          }
+
+          const title = properties.title || file.name.replace('.md', '');
+          const preacher = properties.preacher || properties.speaker || '';
+          const rawDate = properties.date || properties.sermonDate || new Date().toISOString();
+          const sermonDate = new Date(rawDate);
+          const tags = Array.isArray(properties.tags) ? properties.tags : (properties.tags ? properties.tags.split(',').map((s: string) => s.trim()) : []);
+          const verses = Array.isArray(properties.verses) ? properties.verses : (properties.verses ? properties.verses.split(',').map((s: string) => s.trim()) : []);
+
+          await addNote({
+            title,
+            preacher,
+            sermonDate: isFinite(sermonDate.getTime()) ? sermonDate : new Date(),
+            content,
+            tags: tags.map((t: string) => t.replace(/^#/, '')),
+            verses,
+            isPublic: false,
+            imageUrls: [],
           });
         }
-
-        const title = properties.title || file.name.replace('.md', '');
-        const preacher = properties.preacher || properties.speaker || '';
-        const rawDate = properties.date || properties.sermonDate || new Date().toISOString();
-        const sermonDate = new Date(rawDate);
-        const tags = Array.isArray(properties.tags) ? properties.tags : (properties.tags ? properties.tags.split(',').map((s: string) => s.trim()) : []);
-        const verses = Array.isArray(properties.verses) ? properties.verses : (properties.verses ? properties.verses.split(',').map((s: string) => s.trim()) : []);
-
-        await addNote({
-          title,
-          preacher,
-          sermonDate: isFinite(sermonDate.getTime()) ? sermonDate : new Date(),
-          content,
-          tags: tags.map((t: string) => t.replace(/^#/, '')),
-          verses,
-          isPublic: false,
-          imageUrls: [],
-        });
         
         setImportProgress(prev => ({ ...prev, current: i + 1 }));
       } catch (err) {
@@ -122,12 +163,12 @@ function AppContent() {
                 <Database className="w-4 h-4" />
                 <span className="text-xs font-bold uppercase tracking-wider">Data Migration</span>
               </div>
-              <p className="text-xs text-muted-foreground mb-4">Export your sermon notes from <strong>Capacities</strong> as Markdown and upload them here to migrate your library.</p>
+              <p className="text-xs text-muted-foreground mb-4">Export your sermon notes from <strong>Capacities</strong> as Markdown or CSV and upload them here to migrate your library.</p>
               
               {importing ? (
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs font-bold text-primary italic">
-                    <span>Importing notes...</span>
+                    <span>Importing data...</span>
                     <span>{Math.round((importProgress.current / importProgress.total) * 100)}%</span>
                   </div>
                   <div className="w-full bg-muted rounded-full h-2 overflow-hidden border border-border">
@@ -143,7 +184,7 @@ function AppContent() {
                   <input 
                     type="file" 
                     multiple 
-                    accept=".md" 
+                    accept=".md,.csv" 
                     className="hidden" 
                     onChange={(e) => e.target.files && handleCapacitiesImport(e.target.files)}
                   />
@@ -151,7 +192,7 @@ function AppContent() {
                     <Upload className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
                     <div className="flex flex-col items-start leading-tight">
                       <span>Import from Capacities</span>
-                      <span className="text-[10px] font-normal text-muted-foreground group-hover:text-primary/70 transition-colors">Select .md files with YAML properties</span>
+                      <span className="text-[10px] font-normal text-muted-foreground group-hover:text-primary/70 transition-colors">Select .md or .csv files for migration</span>
                     </div>
                   </div>
                 </label>
