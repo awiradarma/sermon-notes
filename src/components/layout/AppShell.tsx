@@ -17,19 +17,55 @@ export function AppShell({
     <div className="flex flex-col h-[100dvh] overflow-hidden bg-background text-foreground">
       {/* Top Navbar */}
       <header className="flex h-14 items-center gap-3 border-b bg-card px-4 md:px-6 shrink-0 shadow-sm sticky top-0 z-40">
-        <BookOpen className="w-6 h-6 text-primary shrink-0" />
-        <h1 className="flex-1 font-bold text-lg tracking-tight hidden sm:block">SanctuaryNotes</h1>
-        <h1 className="flex-1 font-bold text-lg tracking-tight sm:hidden">Sanctuary</h1>
+        <div className="flex items-center gap-2 mr-2 md:mr-6">
+          <BookOpen className="w-6 h-6 text-primary shrink-0" />
+          <h1 className="font-bold text-lg tracking-tight hidden sm:block">SanctuaryNotes</h1>
+          <h1 className="font-bold text-lg tracking-tight sm:hidden">Sanctuary</h1>
+        </div>
         
-        <SyncIndicator />
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex flex-1 items-center gap-1">
+          <button 
+            onClick={() => setActiveTab('home')}
+            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 'home' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+          >
+            <Home className="w-4 h-4" /> Library
+          </button>
+          <button 
+            onClick={() => setActiveTab('community')}
+            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 'community' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+          >
+            <Users className="w-4 h-4" /> Community
+          </button>
+          <button 
+            onClick={() => setActiveTab('settings')}
+            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 'settings' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+          >
+            <Settings className="w-4 h-4" /> Settings
+          </button>
+          
+          <div className="flex-1" />
+          
+          <button 
+            onClick={() => setActiveTab('write')}
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold transition-all bg-primary text-primary-foreground hover:bg-primary/90 shadow hover:scale-[1.03] active:scale-95 mr-2`}
+          >
+            <PenSquare className="w-4 h-4" /> Write
+          </button>
+        </nav>
+
+        <div className="flex-1 md:hidden" />
         
-        <button 
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="p-2 rounded-full hover:bg-accent hover:text-accent-foreground transition-colors shrink-0"
-          title="Toggle Theme"
-        >
-          {theme === "dark" ? "🌙" : "☀️"}
-        </button>
+        <div className="flex items-center gap-2">
+          <SyncIndicator />
+          <button 
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="p-2 rounded-full hover:bg-accent hover:text-accent-foreground transition-colors shrink-0"
+            title="Toggle Theme"
+          >
+            {theme === "dark" ? "🌙" : "☀️"}
+          </button>
+        </div>
       </header>
       
       {/* Main Content Area */}
