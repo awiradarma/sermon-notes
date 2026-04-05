@@ -75,7 +75,7 @@ export function AppShell({
       </header>
       
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-h-0 bg-muted/20 pb-20 md:pb-6 relative w-full max-w-5xl mx-auto md:mt-4 md:px-4">
+      <main className={`flex-1 flex flex-col min-h-0 bg-muted/20 pb-20 md:pb-6 relative w-full ${activeTab === 'graph' ? '' : 'max-w-5xl mx-auto md:mt-4 md:px-4'}`}>
         {children}
       </main>
 

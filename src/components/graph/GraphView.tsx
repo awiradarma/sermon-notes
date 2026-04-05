@@ -144,6 +144,48 @@ export function GraphView({ onNodeClick }: { onNodeClick?: (noteId: string) => v
     }
   };
 
+  const fgRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (fgRef.current && isClient && dimensions.width > 0) {
+      // Small timeout to allow physics bounds to establish before zooming
+      const timer = setTimeout(() => {
+        if (fgRef.current) fgRef.current.zoomToFit(400, 50, () => true);
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [graphData, isClient, dimensions.width]);
+
+  const drawNode = (node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+    const nodeVal = node.val || 4;
+    const radius = Math.sqrt(nodeVal) * 3;
+    
+    // Draw Node Body
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI, false);
+    ctx.fillStyle = node.color;
+    ctx.fill();
+
+    // Draw Label if zoomed in reasonably
+    if (globalScale > 0.8 || node.val === 10) {
+      const label = node.name;
+      const fontSize = 12 / globalScale;
+      ctx.font = `600 ${fontSize}px Sans-Serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      
+      const textY = node.y + radius + (4 / globalScale);
+
+      // Text stroke for readability over links/other nodes
+      ctx.lineWidth = 3 / globalScale;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.strokeText(label, node.x, textY);
+      
+      ctx.fillStyle = '#1e293b';
+      ctx.fillText(label, node.x, textY);
+    }
+  };
+
   return (
     <div className="flex flex-col flex-1 h-full w-full bg-background relative overflow-hidden" ref={containerRef}>
       
@@ -243,10 +285,12 @@ export function GraphView({ onNodeClick }: { onNodeClick?: (noteId: string) => v
       
       {isClient && dimensions.width > 0 && (
         <ForceGraph2D
+          ref={fgRef}
           width={dimensions.width}
           height={dimensions.height}
           graphData={graphData}
-          nodeLabel="name"
+          nodeLabel={() => ''}
+          nodeCanvasObject={drawNode}
           nodeColor="color"
           linkColor={() => 'rgba(150, 150, 150, 0.2)'}
           onNodeClick={handleNodeClick}
