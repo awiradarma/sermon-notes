@@ -91,8 +91,8 @@ export function useNotes() {
     if (!user) throw new Error("Must be logged in");
     
     // Attempt saving preacher to known list automatically
-    if (note.preacher) {
-      savePreacherToProfile(user.uid, note.preacher).catch(console.error);
+    if (note.preacher || (note.tags && note.tags.length > 0)) {
+      saveMetadataToProfile(user.uid, note.preacher, note.tags).catch(console.error);
     }
     
     return await addDoc(collection(db, 'notes'), {
@@ -108,8 +108,8 @@ export function useNotes() {
     if (!user) throw new Error("Must be logged in");
     const ref = doc(db, 'notes', docId);
     
-    if (updates.preacher) {
-      savePreacherToProfile(user.uid, updates.preacher).catch(console.error);
+    if (updates.preacher || (updates.tags && updates.tags.length > 0)) {
+      saveMetadataToProfile(user.uid, updates.preacher, updates.tags).catch(console.error);
     }
     
     const payload: any = { ...updates, updatedAt: serverTimestamp() };
@@ -128,24 +128,43 @@ export function useNotes() {
   return { notes, loading, addNote, updateNote, removeNote };
 }
 
-export const savePreacherToProfile = async (userId: string, preacherName: string) => {
-  if (!preacherName || !preacherName.trim()) return;
+export const saveMetadataToProfile = async (userId: string, preacherName?: string, tags?: string[]) => {
+  if (!preacherName?.trim() && (!tags || tags.length === 0)) return;
+  
   const ref = doc(db, 'userProfiles', userId);
   const snap = await getDoc(ref);
+  
   if (snap.exists()) {
     const data = snap.data();
-    const known = data.knownPreachers || [];
-    if (!known.includes(preacherName)) {
-      await updateDoc(ref, {
-        knownPreachers: [...known, preacherName]
-      });
+    const knownPreachers = data.knownPreachers || [];
+    const knownTags = data.knownTags || [];
+    
+    let needsUpdate = false;
+    const updates: any = {};
+    
+    if (preacherName && preacherName.trim() && !knownPreachers.includes(preacherName)) {
+      updates.knownPreachers = [...knownPreachers, preacherName];
+      needsUpdate = true;
+    }
+    
+    if (tags && tags.length > 0) {
+      const newTags = tags.filter(t => !knownTags.includes(t));
+      if (newTags.length > 0) {
+        updates.knownTags = [...knownTags, ...newTags];
+        needsUpdate = true;
+      }
+    }
+    
+    if (needsUpdate) {
+      await updateDoc(ref, updates);
     }
   } else {
     // create profile initially if missing
     await setDoc(ref, {
       userId,
       displayName: "User",
-      knownPreachers: [preacherName],
+      knownPreachers: preacherName && preacherName.trim() ? [preacherName] : [],
+      knownTags: tags || [],
       themePreference: "auto"
     });
   }

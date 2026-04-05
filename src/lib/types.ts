@@ -17,6 +17,7 @@ export interface Note {
 export interface UserProfile {
   userId: string;
   knownPreachers: string[];
+  knownTags?: string[];
   displayName: string;
   themePreference: 'light' | 'dark' | 'auto';
 }

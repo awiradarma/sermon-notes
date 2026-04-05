@@ -10,6 +10,7 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
   const { addNote, updateNote, removeNote, notes } = useNotes();
   const [loading, setLoading] = useState(!!existingNoteId);
   const [knownPreachers, setKnownPreachers] = useState<string[]>([]);
+  const [knownTags, setKnownTags] = useState<string[]>([]);
   
   // Note state
   const [title, setTitle] = useState('');
@@ -49,7 +50,10 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
   useEffect(() => {
     if (user) {
       fetchUserProfile(user.uid).then(profile => {
-        if (profile) setKnownPreachers(profile.knownPreachers || []);
+        if (profile) {
+          setKnownPreachers(profile.knownPreachers || []);
+          setKnownTags(profile.knownTags || []);
+        }
       });
     }
   }, [user]);
@@ -244,10 +248,12 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
             ))}
             <input 
               type="text" 
+              list="tags-list"
               placeholder="Add tag..." 
-              className="bg-transparent text-xs border-none outline-none max-w-[80px]"
+              className="bg-transparent text-xs border-none outline-none min-w-[100px]"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
+                  e.preventDefault();
                   const val = e.currentTarget.value.trim().replace(/^#/, '');
                   if (val && !tags.includes(val)) {
                     setTags([...tags, val]);
@@ -256,6 +262,9 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
                 }
               }}
             />
+            <datalist id="tags-list">
+              {knownTags.filter(t => !tags.includes(t)).map(t => <option key={t} value={t} />)}
+            </datalist>
           </div>
           
           <div className="flex items-center justify-between pt-2 border-t mt-4">
