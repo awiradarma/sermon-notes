@@ -1,9 +1,13 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Quote } from 'lucide-react';
-import { useEffect } from 'react';
+import { Bold, Italic, List, ListOrdered, Heading1, Heading2, Quote, Type } from 'lucide-react';
+import { useEffect, useState } from 'react';
+
+const FONT_SIZES = ['prose-sm', 'prose-base', 'prose-lg', 'prose-xl'];
 
 export function TipTapEditor({ content, onChange }: { content: string; onChange: (html: string) => void }) {
+  const [fontSizeIndex, setFontSizeIndex] = useState(1); // default 'prose-base'
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -14,7 +18,7 @@ export function TipTapEditor({ content, onChange }: { content: string; onChange:
     },
     editorProps: {
       attributes: {
-        class: 'prose dark:prose-invert prose-sm sm:prose-base focus:outline-none max-w-full min-h-[50vh] pb-32',
+        class: 'focus:outline-none min-h-[50vh] pb-32 h-full',
       },
     },
   });
@@ -29,9 +33,13 @@ export function TipTapEditor({ content, onChange }: { content: string; onChange:
     return null;
   }
 
+  const cycleFontSize = () => {
+    setFontSizeIndex((prev) => (prev + 1) % FONT_SIZES.length);
+  };
+
   return (
-    <div className="flex flex-col min-h-full w-full">
-      <div className="flex flex-wrap items-center gap-1 p-2 sticky top-0 md:top-[-1px] z-30 bg-background/95 backdrop-blur border-y shadow-sm w-full transition-all duration-300">
+    <div className="w-full relative block">
+      <div className="flex flex-wrap items-center gap-1 p-2 sticky top-[0px] z-50 bg-background/95 supports-[backdrop-filter]:bg-background/80 backdrop-blur border-y shadow-sm w-full transition-all duration-300">
         <button
           title="Bold"
           onClick={() => editor.chain().focus().toggleBold().run()}
@@ -83,9 +91,19 @@ export function TipTapEditor({ content, onChange }: { content: string; onChange:
         >
           <Quote className="w-4 h-4" />
         </button>
+        
+        <div className="flex-1"></div>
+        
+        <button
+          title="Change Font Size"
+          onClick={cycleFontSize}
+          className="p-2 flex items-center justify-center rounded-md transition-colors hover:bg-muted text-primary"
+        >
+          <Type className="w-4 h-4 font-bold" />
+        </button>
       </div>
       
-      <div className="flex-1 overflow-visible px-4 py-6 md:px-8 bg-card shadow-sm border-x border-b rounded-b-xl min-h-[50vh]">
+      <div className={`px-4 py-6 md:px-8 bg-card shadow-sm border-x border-b rounded-b-xl min-h-[50vh] prose dark:prose-invert ${FONT_SIZES[fontSizeIndex]} max-w-full transition-all duration-300`}>
         <EditorContent editor={editor} />
       </div>
     </div>
