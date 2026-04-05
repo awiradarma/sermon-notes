@@ -161,7 +161,7 @@ function AppContent() {
         />
       )}
       {activeTab === 'settings' && (
-        <div className="p-8 max-w-lg mx-auto pb-20">
+        <div className="flex-1 min-h-0 overflow-y-auto w-full p-8 max-w-lg mx-auto pb-20">
           <h2 className="text-3xl font-bold mb-6 text-foreground tracking-tight">Settings</h2>
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
             <h3 className="text-lg font-semibold mb-4 text-foreground border-b pb-2">Account</h3>

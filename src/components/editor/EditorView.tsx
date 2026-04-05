@@ -89,19 +89,11 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
   }, [versesText]);
 
   // Scroll handler for distraction free
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollTop = window.scrollY;
-      if (scrollTop > 100 && !isHeaderCollapsed) {
-        setIsHeaderCollapsed(true);
-      } else if (scrollTop === 0 && isHeaderCollapsed) {
-        setIsHeaderCollapsed(false);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [isHeaderCollapsed]);
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (e.currentTarget.scrollTop > 100 && !isHeaderCollapsed) {
+      setIsHeaderCollapsed(true);
+    }
+  };
 
   // Auto-save on unmount
   useEffect(() => {
@@ -176,7 +168,7 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
   };
 
   return (
-    <div className="flex flex-col bg-background" ref={scrollRef}>
+    <div className="flex flex-col flex-1 min-h-0 bg-background overflow-y-auto" onScroll={handleScroll} ref={scrollRef}>
       {/* Dynamic Header / Metadata */}
       <div className={`transition-all duration-300 ease-in-out shrink-0 overflow-hidden ${isHeaderCollapsed ? 'max-h-0 opacity-0 m-0 p-0' : 'max-h-[500px] opacity-100 p-4 pb-0'}`}>
         <div className="space-y-4 max-w-3xl mx-auto bg-card p-6 rounded-xl border border-border shadow-sm">

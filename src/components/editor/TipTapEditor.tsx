@@ -39,7 +39,7 @@ export function TipTapEditor({ content, onChange }: { content: string; onChange:
 
   return (
     <div className="w-full relative block">
-      <div className="flex flex-wrap items-center gap-1 p-2 sticky top-14 z-50 bg-background/95 supports-[backdrop-filter]:bg-background/80 backdrop-blur border-y shadow-sm w-full transition-all duration-300">
+      <div className="flex flex-wrap items-center gap-1 p-2 sticky top-0 z-50 bg-background/95 supports-[backdrop-filter]:bg-background/80 backdrop-blur border-y shadow-sm w-full transition-all duration-300">
         <button
           title="Bold"
           onClick={() => editor.chain().focus().toggleBold().run()}

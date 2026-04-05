@@ -124,7 +124,7 @@ export function LibraryView({ onEditNote }: { onEditNote: (noteId: string) => vo
   };
 
   return (
-    <div className="flex flex-col h-full bg-background p-4 md:p-8 animate-in fade-in duration-500">
+    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto bg-background p-4 md:p-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-6 bg-card p-4 rounded-xl border border-border shadow-sm">
         <div className="flex flex-col w-full">
           <h2 className="text-3xl font-bold text-foreground tracking-tight">Library</h2>

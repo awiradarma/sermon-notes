@@ -66,7 +66,7 @@ export function CommunityFeed() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-background p-4 md:p-8 animate-in fade-in duration-500">
+    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto bg-background p-4 md:p-8 animate-in fade-in duration-500">
       <div className="flex flex-col gap-2 mb-8 bg-card p-4 rounded-xl border border-border shadow-sm">
         <h2 className="text-3xl font-bold text-foreground tracking-tight">Community Feed</h2>
         <p className="text-sm text-muted-foreground">Discover sermon notes shared by the community.</p>
