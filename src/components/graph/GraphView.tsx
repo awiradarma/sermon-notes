@@ -138,6 +138,18 @@ export function GraphView({ onNodeClick }: { onNodeClick?: (noteId: string) => v
     return { nodes, links };
   }, [notes, showVerses, showTags, showPreachers, showSeries, selectedTags, selectedPreachers, focusedNoteId]);
 
+  const fgRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (fgRef.current && isClient && dimensions.width > 0) {
+      // Small timeout to allow physics bounds to establish before zooming
+      const timer = setTimeout(() => {
+        if (fgRef.current) fgRef.current.zoomToFit(400, 50, () => true);
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [graphData, isClient, dimensions.width]);
+
   if (loading) {
     return <div className="flex flex-1 items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>;
   }
@@ -151,18 +163,6 @@ export function GraphView({ onNodeClick }: { onNodeClick?: (noteId: string) => v
       }
     }
   };
-
-  const fgRef = useRef<any>(null);
-
-  useEffect(() => {
-    if (fgRef.current && isClient && dimensions.width > 0) {
-      // Small timeout to allow physics bounds to establish before zooming
-      const timer = setTimeout(() => {
-        if (fgRef.current) fgRef.current.zoomToFit(400, 50, () => true);
-      }, 600);
-      return () => clearTimeout(timer);
-    }
-  }, [graphData, isClient, dimensions.width]);
 
   const drawNode = (node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
     const nodeVal = node.val || 4;
