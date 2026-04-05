@@ -39,6 +39,7 @@ function AppContent() {
       {activeTab === 'write' && (
         <EditorView 
           existingNoteId={editingNoteId} 
+          onNoteCreated={(id) => setEditingNoteId(id)}
           onSaved={() => {
             setEditingNoteId(undefined);
             setActiveTab('home');
@@ -66,7 +67,7 @@ function AppContent() {
                   const toDelete = notes.filter(n => n.title.includes('Test Sermon') || n.title.includes('Investigation Test'));
                   if (window.confirm(`Delete ${toDelete.length} duplicate test notes? This might take a moment.`)) {
                     for (const note of toDelete) {
-                      await removeNote(note.docId);
+                      if (note.docId) await removeNote(note.docId);
                     }
                     alert('Cleanup complete!');
                   }

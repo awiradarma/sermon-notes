@@ -5,7 +5,7 @@ import { TipTapEditor } from './TipTapEditor';
 import { BIBLE_BOOKS } from '../../lib/bibleBooks';
 import { Save, Calendar, User, Book as BookIcon, Hash, FolderOpen, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
 
-export function EditorView({ existingNoteId, onSaved }: { existingNoteId?: string, onSaved?: () => void }) {
+export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existingNoteId?: string, onSaved?: () => void, onNoteCreated?: (id: string) => void }) {
   const { user } = useAuth();
   const { addNote, updateNote, removeNote, notes } = useNotes();
   const [loading, setLoading] = useState(!!existingNoteId);
@@ -119,7 +119,9 @@ export function EditorView({ existingNoteId, onSaved }: { existingNoteId?: strin
       if (state.existingNoteId) {
         updateNote(state.existingNoteId, payload).catch(console.error);
       } else {
-        addNote(payload).catch(console.error);
+        addNote(payload).then(ref => {
+          if (onNoteCreated) onNoteCreated(ref.id);
+        }).catch(console.error);
       }
     };
   }, [addNote, updateNote]);
@@ -154,7 +156,8 @@ export function EditorView({ existingNoteId, onSaved }: { existingNoteId?: strin
       if (existingNoteId) {
         await updateNote(existingNoteId, noteData);
       } else {
-        await addNote(noteData);
+        const ref = await addNote(noteData);
+        if (onNoteCreated) onNoteCreated(ref.id);
       }
       if (onSaved) onSaved();
       isDirty.current = false;
