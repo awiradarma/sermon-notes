@@ -38,12 +38,12 @@ function AppContent() {
         const isCSV = file.name.toLowerCase().endsWith('.csv');
         
         if (isCSV) {
-          // Robust CSV Parser (handles quotes and commas)
+          // Robust CSV Parser (handles quotes and semicolons)
           const rows: string[][] = [];
           const lines = text.split(/\r?\n/);
           lines.forEach(line => {
             if (!line.trim()) return;
-            const matches = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+            const matches = line.match(/(".*?"|[^";\s]+)(?=\s*;|\s*$)/g);
             if (matches) rows.push(matches.map(m => m.replace(/^"|"$/g, '').trim()));
           });
 
@@ -79,7 +79,7 @@ function AppContent() {
         } else {
           // Basic YAML Frontmatter Parser (Markdown)
           const frontmatterMatch = text.match(/^---\s*([\s\S]*?)\s*---/);
-          const content = text.replace(/^---\s*[\s\S]*?\s*---/, '').trim();
+          const body = text.replace(/^---\s*[\s\S]*?\s*---/, '').trim();
           const properties: Record<string, any> = {};
           
           if (frontmatterMatch) {
@@ -98,8 +98,20 @@ function AppContent() {
             });
           }
 
+          // Extract Preacher from Markdown Link: [Name](../People/Name.md)
+          const preacherMatch = body.match(/### Preacher\s*\n\s*\n\s*\[([^\]]+)\]\(\.\.\/People\//);
+          const preacher = properties.preacher || properties.speaker || (preacherMatch ? preacherMatch[1] : '');
+          
+          // Isolate Content: Everything under ### Content or the rest of the file
+          let content = body;
+          if (body.includes('### Content')) {
+            content = body.split('### Content')[1].trim();
+          } else if (preacherMatch) {
+            // Remove preacher section if it was matched but no ### Content header
+            content = body.replace(/### Preacher[\s\S]*?(\n\n|$)/, '').trim();
+          }
+
           const title = properties.title || file.name.replace('.md', '');
-          const preacher = properties.preacher || properties.speaker || '';
           const rawDate = properties.date || properties.sermonDate || new Date().toISOString();
           const sermonDate = new Date(rawDate);
           const tags = Array.isArray(properties.tags) ? properties.tags : (properties.tags ? properties.tags.split(',').map((s: string) => s.trim()) : []);
