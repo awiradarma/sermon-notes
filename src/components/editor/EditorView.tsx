@@ -8,6 +8,7 @@ import { Save, Calendar, User, Book as BookIcon, Hash, FolderOpen, ChevronUp, Ch
 export function EditorView({ existingNoteId, onSaved }: { existingNoteId?: string, onSaved?: () => void }) {
   const { user } = useAuth();
   const { addNote, updateNote, removeNote, notes } = useNotes();
+  const [loading, setLoading] = useState(!!existingNoteId);
   const [knownPreachers, setKnownPreachers] = useState<string[]>([]);
   
   // Note state
@@ -20,10 +21,22 @@ export function EditorView({ existingNoteId, onSaved }: { existingNoteId?: strin
   const [content, setContent] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   
+  // Track changes for auto-save
+  useEffect(() => {
+    if (loading) return;
+    if (isInitialLoad.current) {
+      isInitialLoad.current = false;
+      return;
+    }
+    isDirty.current = true;
+  }, [title, preacher, sermonDate, seriesTitle, versesText, tags, content, isPublic, loading]);
+  
   // UI state
   const [isSaving, setIsSaving] = useState(false);
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const isDirty = useRef(false);
+  const isInitialLoad = useRef(true);
   
   // Refs for auto-save (to avoid stale closures on unmount)
   const lastState = useRef({ title, preacher, sermonDate, seriesTitle, isPublic, content, verses: versesText.split(',').map(v => v.trim()).filter(Boolean), tags, existingNoteId });
@@ -54,6 +67,9 @@ export function EditorView({ existingNoteId, onSaved }: { existingNoteId?: strin
         setContent(note.content);
         setIsPublic(note.isPublic);
       }
+      setLoading(false);
+    } else if (!existingNoteId) {
+      setLoading(false);
     }
   }, [existingNoteId, notes]);
 
@@ -85,8 +101,8 @@ export function EditorView({ existingNoteId, onSaved }: { existingNoteId?: strin
   useEffect(() => {
     return () => {
       const state = lastState.current;
-      // Only auto-save if there's at least a title
-      if (!state.title.trim()) return;
+      // Only auto-save if dirty and has a title
+      if (!isDirty.current || !state.title.trim()) return;
       
       const payload = {
         title: state.title,
@@ -141,6 +157,7 @@ export function EditorView({ existingNoteId, onSaved }: { existingNoteId?: strin
         await addNote(noteData);
       }
       if (onSaved) onSaved();
+      isDirty.current = false;
     } catch (err) {
       console.error(err);
       alert("Failed to save");

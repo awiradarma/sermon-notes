@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { db } from './firebase';
 import { 
   collection, doc, setDoc, getDoc, updateDoc, deleteDoc, 
@@ -49,10 +49,10 @@ export function usePublicNotes() {
     return unsubscribe;
   }, []);
 
-  const likeNote = async (docId: string, currentHearts: number) => {
+  const likeNote = useCallback(async (docId: string, currentHearts: number) => {
     const ref = doc(db, 'notes', docId);
     await updateDoc(ref, { heartCount: currentHearts + 1 });
-  };
+  }, []);
 
   return { publicNotes, loading, likeNote };
 }
@@ -87,7 +87,7 @@ export function useNotes() {
     return unsubscribe;
   }, [user]);
 
-  const addNote = async (note: Omit<Note, 'docId' | 'userId' | 'updatedAt' | 'heartCount'>) => {
+  const addNote = useCallback(async (note: Omit<Note, 'docId' | 'userId' | 'updatedAt' | 'heartCount'>) => {
     if (!user) throw new Error("Must be logged in");
     
     // Attempt saving preacher to known list automatically
@@ -102,9 +102,9 @@ export function useNotes() {
       updatedAt: serverTimestamp(),
       sermonDate: Timestamp.fromDate(note.sermonDate)
     });
-  };
+  }, [user]);
 
-  const updateNote = async (docId: string, updates: Partial<Note>) => {
+  const updateNote = useCallback(async (docId: string, updates: Partial<Note>) => {
     if (!user) throw new Error("Must be logged in");
     const ref = doc(db, 'notes', docId);
     
@@ -118,12 +118,12 @@ export function useNotes() {
     }
     
     return await updateDoc(ref, payload);
-  };
+  }, [user]);
 
-  const removeNote = async (docId: string) => {
+  const removeNote = useCallback(async (docId: string) => {
     if (!user) throw new Error("Must be logged in");
     return await deleteDoc(doc(db, 'notes', docId));
-  };
+  }, [user]);
 
   return { notes, loading, addNote, updateNote, removeNote };
 }
