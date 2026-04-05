@@ -65,13 +65,18 @@ export function GraphView({ onNodeClick }: { onNodeClick?: (noteId: string) => v
       }
     };
 
+    const extractBook = (verseStr: string) => {
+      const match = verseStr.match(/^(\d\s+)?[a-zA-Z\s]+/);
+      return match ? match[0].trim() : verseStr.trim();
+    };
+
     let processedNotes = notes;
 
     if (selectedPreachers.size > 0) {
       processedNotes = processedNotes.filter(n => n.preacher && selectedPreachers.has(n.preacher));
     }
     if (selectedTags.size > 0) {
-      processedNotes = processedNotes.filter(n => n.tags.some(t => selectedTags.has(t)));
+      processedNotes = processedNotes.filter(n => n.tags.some(t => selectedTags.has(t.toLowerCase())));
     }
 
     if (focusedNoteId) {
@@ -79,15 +84,15 @@ export function GraphView({ onNodeClick }: { onNodeClick?: (noteId: string) => v
       if (focusNote) {
         const connectedPreacher = focusNote.preacher;
         const connectedSeries = focusNote.seriesTitle;
-        const connectedTags = new Set(focusNote.tags);
-        const connectedVerses = new Set(focusNote.verses.slice(0, 5));
+        const connectedTags = new Set(focusNote.tags.map(t => t.toLowerCase()));
+        const connectedVerses = new Set(focusNote.verses.map(extractBook));
 
         processedNotes = processedNotes.filter(n => {
           if (n.docId === focusedNoteId) return true;
           if (connectedPreacher && n.preacher === connectedPreacher && showPreachers) return true;
           if (connectedSeries && n.seriesTitle === connectedSeries && showSeries) return true;
-          if (showTags && n.tags.some(t => connectedTags.has(t))) return true;
-          if (showVerses && n.verses.slice(0, 5).some(v => connectedVerses.has(v))) return true;
+          if (showTags && n.tags.some(t => connectedTags.has(t.toLowerCase()))) return true;
+          if (showVerses && n.verses.some(v => connectedVerses.has(extractBook(v)))) return true;
           return false;
         });
       }
@@ -111,7 +116,8 @@ export function GraphView({ onNodeClick }: { onNodeClick?: (noteId: string) => v
       }
 
       if (showTags) {
-        note.tags.forEach(tag => {
+        const uniqueTags = Array.from(new Set(note.tags.map(t => t.toLowerCase())));
+        uniqueTags.forEach(tag => {
           const tagId = `tag_${tag}`;
           addNode(tagId, `#${tag}`, 'tag', '#22c55e');
           links.push({ source: noteNodeId, target: tagId });
@@ -119,9 +125,10 @@ export function GraphView({ onNodeClick }: { onNodeClick?: (noteId: string) => v
       }
 
       if (showVerses) {
-        note.verses.slice(0, 5).forEach(verse => {
-          const verseId = `verse_${verse}`;
-          addNode(verseId, verse, 'verse', '#eab308');
+        const uniqueBooks = Array.from(new Set(note.verses.map(extractBook)));
+        uniqueBooks.forEach(book => {
+          const verseId = `verse_${book}`;
+          addNode(verseId, book, 'verse', '#eab308');
           links.push({ source: noteNodeId, target: verseId });
         });
       }
@@ -167,7 +174,7 @@ export function GraphView({ onNodeClick }: { onNodeClick?: (noteId: string) => v
     ctx.fill();
 
     // Draw Label if zoomed in reasonably
-    if (globalScale > 0.8 || node.val === 10) {
+    if (globalScale > 0.4 || node.val === 10) {
       const label = node.name;
       const fontSize = 12 / globalScale;
       ctx.font = `600 ${fontSize}px Sans-Serif`;
@@ -232,7 +239,7 @@ export function GraphView({ onNodeClick }: { onNodeClick?: (noteId: string) => v
           <div className="flex flex-col gap-2">
             <h4 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Filter by Tag</h4>
             <div className="flex flex-wrap gap-1">
-              {knownTags.map(tag => (
+              {Array.from(new Set(knownTags.map(t => t.toLowerCase()))).map(tag => (
                 <button 
                   key={tag} 
                   onClick={() => {
