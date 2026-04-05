@@ -295,7 +295,7 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
       </div>
       
       {/* Editor Canvas */}
-      <div className="max-w-3xl w-full mx-auto flex-1 h-full min-h-[60vh] relative z-10 pt-2 pb-20 px-2 lg:px-0">
+      <div className="max-w-3xl w-full mx-auto flex-1 min-h-[60vh] relative z-10 pt-2 pb-20 px-2 lg:px-0">
         <div className="flex justify-end mb-2 pr-2">
           <button 
             type="button"

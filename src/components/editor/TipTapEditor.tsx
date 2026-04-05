@@ -30,7 +30,7 @@ export function TipTapEditor({ content, onChange }: { content: string; onChange:
   }
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col min-h-full w-full">
       <div className="flex flex-wrap items-center gap-1 p-2 sticky top-0 md:top-[-1px] z-30 bg-background/95 backdrop-blur border-y shadow-sm w-full transition-all duration-300">
         <button
           title="Bold"
