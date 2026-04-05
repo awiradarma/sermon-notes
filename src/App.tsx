@@ -6,10 +6,7 @@ import { LibraryView } from './components/library/LibraryView';
 import { EditorView } from './components/editor/EditorView';
 import { CommunityFeed } from './components/community/CommunityFeed';
 import { auth } from './lib/firebase';
-import { LogOut } from 'lucide-react';
-import { useNotes } from './lib/hooks';
-
-function AppContent() {
+import { LogOut } from 'lucide-react';function AppContent() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('home');
   const [editingNoteId, setEditingNoteId] = useState<string | undefined>();
