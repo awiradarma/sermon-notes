@@ -1,4 +1,4 @@
-import { BookOpen, Home, Settings, PenSquare, Users } from "lucide-react"
+import { BookOpen, Home, Settings, PenSquare, Users, Network } from "lucide-react"
 import { useTheme } from "../theme-provider"
 import { SyncIndicator } from "../common/SyncIndicator"
 
@@ -30,6 +30,12 @@ export function AppShell({
             className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 'home' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
           >
             <Home className="w-4 h-4" /> Library
+          </button>
+          <button 
+            onClick={() => setActiveTab('graph')}
+            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 'graph' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+          >
+            <Network className="w-4 h-4" /> Graph
           </button>
           <button 
             onClick={() => setActiveTab('community')}
@@ -90,6 +96,14 @@ export function AppShell({
           >
             <Users className="w-5 h-5" />
             <span className="text-[10px] font-medium">Community</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('graph')}
+            className={`flex flex-col items-center gap-1 p-2 flex-1 ${activeTab === 'graph' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <Network className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Graph</span>
           </button>
           
           <div className="flex-1 flex justify-center">

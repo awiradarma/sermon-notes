@@ -5,6 +5,7 @@ import { LoginScreen } from './components/auth/LoginScreen';
 import { LibraryView } from './components/library/LibraryView';
 import { EditorView } from './components/editor/EditorView';
 import { CommunityFeed } from './components/community/CommunityFeed';
+import { GraphView } from './components/graph/GraphView';
 import { auth } from './lib/firebase';
 import { LogOut } from 'lucide-react';function AppContent() {
   const { user } = useAuth();
@@ -31,6 +32,7 @@ import { LogOut } from 'lucide-react';function AppContent() {
       else setActiveTab(tab);
     }}>
       {activeTab === 'home' && <LibraryView onEditNote={handleEditNote} />}
+      {activeTab === 'graph' && <GraphView onNodeClick={(noteId) => handleEditNote(noteId)} />}
       {activeTab === 'community' && <CommunityFeed />}
       {activeTab === 'write' && (
         <EditorView 
