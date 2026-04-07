@@ -1,12 +1,22 @@
 import { useState, useMemo } from 'react';
 import { useNotes } from '../../lib/hooks';
 import type { Note } from '../../lib/types';
-import { Calendar, User, FolderOpen, Globe, Lock, CheckSquare, Square, Trash2, CheckCircle2 } from 'lucide-react';
+import { Calendar, User, FolderOpen, Globe, Lock, CheckSquare, Square, Trash2, CheckCircle2, ChevronUp, ChevronDown } from 'lucide-react';
+
+const getPastelColor = (str: string) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash % 360);
+  return `hsl(${hue}, 60%, 93%)`;
+};
 
 export function LibraryView({ onEditNote }: { onEditNote: (noteId: string) => void }) {
   const { notes, loading, removeNote } = useNotes();
   const [filter, setFilter] = useState('');
-  const [groupBy, setGroupBy] = useState<'none' | 'series' | 'preacher'>('none');
+  const [groupBy, setGroupBy] = useState<'month' | 'series' | 'preacher'>('month');
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   
   // Selection State
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -22,26 +32,37 @@ export function LibraryView({ onEditNote }: { onEditNote: (noteId: string) => vo
   });
 
   const groupedNotes = useMemo(() => {
-    if (groupBy === 'none') {
-      return [{ groupTitle: 'All Notes', items: filteredNotes }];
-    } else if (groupBy === 'series') {
-      const map = new Map<string, Note[]>();
-      filteredNotes.forEach(n => {
-        const g = n.seriesTitle || 'No Series';
-        if (!map.has(g)) map.set(g, []);
-        map.get(g)!.push(n);
+    const map = new Map<string, Note[]>();
+    filteredNotes.forEach(n => {
+      let g = 'Uncategorized';
+      if (groupBy === 'month') {
+        const d = n.sermonDate;
+        g = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+      } else if (groupBy === 'series') {
+        g = n.seriesTitle || 'Uncategorized';
+      } else if (groupBy === 'preacher') {
+        g = n.preacher || 'Uncategorized';
+      }
+      if (!map.has(g)) map.set(g, []);
+      map.get(g)!.push(n);
+    });
+    
+    return Array.from(map.entries())
+      .map(([groupTitle, items]) => ({ groupTitle, items }))
+      .sort((a, b) => {
+        if (groupBy === 'month') {
+           return b.items[0].sermonDate.getTime() - a.items[0].sermonDate.getTime();
+        }
+        return a.groupTitle.localeCompare(b.groupTitle);
       });
-      return Array.from(map.entries()).map(([groupTitle, items]) => ({ groupTitle, items }));
-    } else {
-      const map = new Map<string, Note[]>();
-      filteredNotes.forEach(n => {
-        const g = n.preacher || 'Unknown Preacher';
-        if (!map.has(g)) map.set(g, []);
-        map.get(g)!.push(n);
-      });
-      return Array.from(map.entries()).map(([groupTitle, items]) => ({ groupTitle, items }));
-    }
   }, [groupBy, filteredNotes]);
+
+  const toggleGroup = (groupTitle: string) => {
+    const newSet = new Set(collapsedGroups);
+    if (newSet.has(groupTitle)) newSet.delete(groupTitle);
+    else newSet.add(groupTitle);
+    setCollapsedGroups(newSet);
+  };
 
   const toggleSelectAll = () => {
     if (selectedIds.size === filteredNotes.length) {
@@ -144,7 +165,7 @@ export function LibraryView({ onEditNote }: { onEditNote: (noteId: string) => vo
               onChange={(e) => setGroupBy(e.target.value as any)}
               className="flex-1 sm:flex-none rounded-lg border border-input bg-background/50 px-3 py-2 text-sm focus:ring-primary focus:border-primary outline-none"
             >
-              <option value="none">Timeline</option>
+              <option value="month">By Month</option>
               <option value="series">By Series</option>
               <option value="preacher">By Preacher</option>
             </select>
@@ -184,16 +205,33 @@ export function LibraryView({ onEditNote }: { onEditNote: (noteId: string) => vo
       )}
 
       <div className="flex flex-col gap-8 pb-20">
-        {groupedNotes.map(group => (
-          <div key={group.groupTitle} className="flex flex-col gap-4">
-            {groupBy !== 'none' && (
-              <h3 className="text-xl font-bold border-b border-border pb-2 text-foreground/80">{group.groupTitle}</h3>
-            )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {group.items.map(n => <NoteCard key={n.docId!} note={n} />)}
+        {groupedNotes.map(group => {
+          const isCollapsed = collapsedGroups.has(group.groupTitle);
+          const pastelColor = getPastelColor(group.groupTitle);
+          
+          return (
+            <div key={group.groupTitle} className="flex flex-col gap-4 rounded-[1.5rem] p-5 transition-colors border shadow-sm" style={{ backgroundColor: pastelColor, borderColor: 'rgba(0,0,0,0.05)' }}>
+              <button 
+                onClick={() => toggleGroup(group.groupTitle)}
+                className="flex items-center justify-between text-left group transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <h3 className="text-xl font-extrabold text-foreground/90 tracking-tight">{group.groupTitle}</h3>
+                  <span className="text-xs font-bold px-2 py-1 bg-black/5 text-black/60 rounded-full">{group.items.length}</span>
+                </div>
+                <div className="p-1.5 bg-black/5 rounded-full text-black/40 group-hover:bg-black/10 transition-colors">
+                  {isCollapsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+                </div>
+              </button>
+              
+              {!isCollapsed && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-2">
+                  {group.items.map(n => <NoteCard key={n.docId!} note={n} />)}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

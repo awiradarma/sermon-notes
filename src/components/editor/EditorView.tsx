@@ -38,6 +38,7 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
   // UI state
   const [isSaving, setIsSaving] = useState(false);
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
+  const [isHeaderFocused, setIsHeaderFocused] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const isDirty = useRef(false);
   const isInitialLoad = useRef(true);
@@ -97,7 +98,7 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
 
   // Scroll handler for distraction free
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (e.currentTarget.scrollTop > 100 && !isHeaderCollapsed) {
+    if (e.currentTarget.scrollTop > 100 && !isHeaderCollapsed && !isHeaderFocused) {
       setIsHeaderCollapsed(true);
     }
   };
@@ -174,7 +175,15 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
   return (
     <div className="flex flex-col flex-1 min-h-0 bg-background overflow-y-auto" onScroll={handleScroll} ref={scrollRef}>
       {/* Dynamic Header / Metadata */}
-      <div className={`transition-all duration-300 ease-in-out shrink-0 overflow-hidden ${isHeaderCollapsed ? 'max-h-0 opacity-0 m-0 p-0' : 'max-h-[500px] opacity-100 p-4 pb-0'}`}>
+      <div 
+        onFocus={() => setIsHeaderFocused(true)}
+        onBlur={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+            setIsHeaderFocused(false);
+          }
+        }}
+        className={`transition-all duration-300 ease-in-out shrink-0 overflow-hidden ${isHeaderCollapsed ? 'max-h-0 opacity-0 m-0 p-0' : 'max-h-[500px] opacity-100 p-4 pb-0'}`}
+      >
         <div className="space-y-4 max-w-3xl mx-auto bg-card p-6 rounded-xl border border-border shadow-sm">
           {/* Title Area */}
           <input 
