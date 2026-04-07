@@ -1,10 +1,14 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
-import { useNotes } from '../../lib/hooks';
+import { useNotes, usePublicNotes } from '../../lib/hooks';
 import { Filter, ChevronDown, ChevronUp } from 'lucide-react';
 
-export function GraphView({ onNodeClick }: { onNodeClick?: (noteId: string) => void }) {
-  const { notes, loading } = useNotes();
+export function GraphView({ onNodeClick, publicMode = false }: { onNodeClick?: (noteId: string) => void, publicMode?: boolean }) {
+  const { notes: privateNotes, loading: privateLoading } = useNotes();
+  const { publicNotes, loading: publicLoading } = usePublicNotes();
+
+  const notes = publicMode ? publicNotes : privateNotes;
+  const loading = publicMode ? publicLoading : privateLoading;
   
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });

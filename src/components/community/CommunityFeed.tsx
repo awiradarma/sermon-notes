@@ -1,11 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { usePublicNotes } from '../../lib/hooks';
 import type { Note } from '../../lib/types';
-import { Calendar, User, Heart, X } from 'lucide-react';
+import { Calendar, User, Heart, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { getGroupTheme } from '../../lib/theme';
+
 export function CommunityFeed() {
   const { publicNotes, loading, likeNote } = usePublicNotes();
   const [likedLocal, setLikedLocal] = useState<Record<string, boolean>>({});
   const [viewingNote, setViewingNote] = useState<Note | null>(null);
+
+  const [filter, setFilter] = useState('');
+  const [groupBy, setGroupBy] = useState<'month' | 'series' | 'preacher'>('month');
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   // Esc key to close modal
   useEffect(() => {
@@ -15,6 +21,56 @@ export function CommunityFeed() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  const filteredNotes = useMemo(() => {
+    return publicNotes.filter(n => {
+      if (!filter) return true;
+      const term = filter.toLowerCase();
+      return n.title.toLowerCase().includes(term) || 
+             (n.preacher && n.preacher.toLowerCase().includes(term)) || 
+             (n.tags || []).some(t => t.toLowerCase().includes(term)) ||
+             (n.seriesTitle && n.seriesTitle.toLowerCase().includes(term));
+    });
+  }, [publicNotes, filter]);
+
+  const groupedNotes = useMemo(() => {
+    const map = new Map<string, Note[]>();
+    filteredNotes.forEach(n => {
+      let g = 'Uncategorized';
+      if (groupBy === 'month') {
+        const d = n.sermonDate;
+        g = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+      } else if (groupBy === 'series') {
+        g = n.seriesTitle || 'Uncategorized';
+      } else if (groupBy === 'preacher') {
+        g = n.preacher || 'Uncategorized';
+      }
+      if (!map.has(g)) map.set(g, []);
+      map.get(g)!.push(n);
+    });
+    
+    return Array.from(map.entries())
+      .map(([groupTitle, items]) => ({ groupTitle, items }))
+      .sort((a, b) => {
+        if (groupBy === 'month') {
+           return b.items[0].sermonDate.getTime() - a.items[0].sermonDate.getTime();
+        }
+        return a.groupTitle.localeCompare(b.groupTitle);
+      });
+  }, [groupBy, filteredNotes]);
+
+  const toggleGroup = (groupTitle: string) => {
+    const newSet = new Set(collapsedGroups);
+    if (newSet.has(groupTitle)) newSet.delete(groupTitle);
+    else newSet.add(groupTitle);
+    setCollapsedGroups(newSet);
+  };
+
+  const handleLike = (noteId: string, currentHearts: number) => {
+    if (likedLocal[noteId]) return; // disable double liking for now in UI
+    setLikedLocal(p => ({ ...p, [noteId]: true }));
+    likeNote(noteId, currentHearts).catch(console.error);
+  };
 
   if (loading) {
     return <div className="flex h-full items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>;
@@ -28,12 +84,6 @@ export function CommunityFeed() {
       </div>
     );
   }
-
-  const handleLike = (noteId: string, currentHearts: number) => {
-    if (likedLocal[noteId]) return; // disable double liking for now in UI
-    setLikedLocal(p => ({ ...p, [noteId]: true }));
-    likeNote(noteId, currentHearts).catch(console.error);
-  };
 
   const FeedCard = ({ note }: { note: Note }) => {
     const isLiked = likedLocal[note.docId!];
@@ -82,13 +132,61 @@ export function CommunityFeed() {
 
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-y-auto bg-background p-4 md:p-8 animate-in fade-in duration-500">
-      <div className="flex flex-col gap-2 mb-8 bg-card p-4 rounded-xl border border-border shadow-sm">
-        <h2 className="text-3xl font-bold text-foreground tracking-tight">Community Feed</h2>
-        <p className="text-sm text-muted-foreground">Discover sermon notes shared by the community.</p>
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-6 bg-card p-4 rounded-xl border border-border shadow-sm">
+        <div className="flex flex-col w-full">
+          <h2 className="text-3xl font-bold text-foreground tracking-tight">Community Feed</h2>
+          <p className="text-sm text-muted-foreground">{filteredNotes.length} public sermons</p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+          <input 
+            type="text" 
+            placeholder="Search notes, tags..." 
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="w-full sm:w-auto sm:flex-1 rounded-lg border border-input bg-background/50 px-4 py-2 text-sm max-w-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all shadow-inner"
+          />
+          <div className="flex gap-2 w-full sm:w-auto">
+            <select 
+              value={groupBy}
+              onChange={(e) => setGroupBy(e.target.value as any)}
+              className="flex-1 sm:flex-none rounded-lg border border-input bg-background/50 px-3 py-2 text-sm focus:ring-primary focus:border-primary outline-none"
+            >
+              <option value="month">By Month</option>
+              <option value="series">By Series</option>
+              <option value="preacher">By Preacher</option>
+            </select>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-        {publicNotes.map(n => <FeedCard key={n.docId!} note={n} />)}
+      <div className="flex flex-col gap-8 pb-20">
+        {groupedNotes.map(group => {
+          const isCollapsed = collapsedGroups.has(group.groupTitle);
+          const themeClass = getGroupTheme(group.groupTitle);
+          
+          return (
+            <div key={group.groupTitle} className={`flex flex-col gap-4 rounded-[1.5rem] p-5 transition-colors border shadow-sm ${themeClass}`}>
+              <button 
+                onClick={() => toggleGroup(group.groupTitle)}
+                className="flex items-center justify-between text-left group transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <h3 className="text-xl font-extrabold text-foreground/90 tracking-tight">{group.groupTitle}</h3>
+                  <span className="text-xs font-bold px-2 py-1 bg-black/5 text-black/60 rounded-full">{group.items.length}</span>
+                </div>
+                <div className="p-1.5 bg-black/5 rounded-full text-black/40 group-hover:bg-black/10 transition-colors">
+                  {isCollapsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+                </div>
+              </button>
+              
+              {!isCollapsed && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-2">
+                  {group.items.map(n => <FeedCard key={n.docId!} note={n} />)}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {viewingNote && (

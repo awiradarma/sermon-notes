@@ -9,7 +9,7 @@ import { GraphView } from './components/graph/GraphView';
 import { auth } from './lib/firebase';
 import { LogOut } from 'lucide-react';function AppContent() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<string>('home');
+  const [activeTab, setActiveTab] = useState<string>(user ? 'home' : 'community');
   const [editingNoteId, setEditingNoteId] = useState<string | undefined>();
 
   const handleEditNote = (noteId: string) => {
@@ -22,19 +22,19 @@ import { LogOut } from 'lucide-react';function AppContent() {
     setActiveTab('write');
   };
 
-  if (!user) {
-    return <LoginScreen />;
-  }
+  const requireAuth = (component: React.ReactNode) => {
+    return user ? component : <LoginScreen />;
+  };
 
   return (
     <AppShell activeTab={activeTab} setActiveTab={(tab) => {
       if (tab === 'write') handleNewNote();
       else setActiveTab(tab);
     }}>
-      {activeTab === 'home' && <LibraryView onEditNote={handleEditNote} />}
-      {activeTab === 'graph' && <GraphView onNodeClick={(noteId) => handleEditNote(noteId)} />}
+      {activeTab === 'home' && requireAuth(<LibraryView onEditNote={handleEditNote} />)}
+      {activeTab === 'graph' && <GraphView publicMode={!user} onNodeClick={user ? (noteId) => handleEditNote(noteId) : undefined} />}
       {activeTab === 'community' && <CommunityFeed />}
-      {activeTab === 'write' && (
+      {activeTab === 'write' && requireAuth(
         <EditorView 
           existingNoteId={editingNoteId} 
           onNoteCreated={(id) => setEditingNoteId(id)}
@@ -44,13 +44,13 @@ import { LogOut } from 'lucide-react';function AppContent() {
           }} 
         />
       )}
-      {activeTab === 'settings' && (
+      {activeTab === 'settings' && requireAuth(
         <div className="flex-1 min-h-0 overflow-y-auto w-full p-8 max-w-lg mx-auto pb-20">
           <h2 className="text-3xl font-bold mb-6 text-foreground tracking-tight">Settings</h2>
           <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
             <h3 className="text-lg font-semibold mb-4 text-foreground border-b pb-2">Account</h3>
             <div className="flex justify-between items-center mb-6">
-              <p className="text-muted-foreground text-sm">Valid profile: <br/><span className="text-foreground font-medium text-base">{user.email}</span></p>
+              <p className="text-muted-foreground text-sm">Valid profile: <br/><span className="text-foreground font-medium text-base">{user?.email}</span></p>
               <p className="text-muted-foreground text-sm text-right">App Version: <br/><span className="text-foreground font-medium text-base">v{import.meta.env.VITE_APP_VERSION || "1.0.0"}</span></p>
             </div>
             
