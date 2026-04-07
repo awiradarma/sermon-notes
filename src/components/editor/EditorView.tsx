@@ -7,10 +7,13 @@ import { Save, Calendar, User, Book as BookIcon, Hash, FolderOpen, ChevronUp, Ch
 
 export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existingNoteId?: string, onSaved?: () => void, onNoteCreated?: (id: string) => void }) {
   const { user } = useAuth();
-  const { addNote, updateNote, removeNote, notes } = useNotes();
+  const { addNote, removeNote, notes, generateNoteId } = useNotes();
   const [loading, setLoading] = useState(!!existingNoteId);
   const [knownPreachers, setKnownPreachers] = useState<string[]>([]);
   const [knownTags, setKnownTags] = useState<string[]>([]);
+  
+  // Generate deterministic ID on mount
+  const [localNoteId] = useState(() => existingNoteId || generateNoteId());
   
   // Note state
   const [title, setTitle] = useState('');
@@ -40,11 +43,11 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
   const isInitialLoad = useRef(true);
   
   // Refs for auto-save (to avoid stale closures on unmount)
-  const lastState = useRef({ title, preacher, sermonDate, seriesTitle, isPublic, content, verses: versesText.split(',').map(v => v.trim()).filter(Boolean), tags, existingNoteId });
+  const lastState = useRef({ title, preacher, sermonDate, seriesTitle, isPublic, content, verses: versesText.split(',').map(v => v.trim()).filter(Boolean), tags, localNoteId });
   
   useEffect(() => {
-    lastState.current = { title, preacher, sermonDate, seriesTitle, isPublic, content, verses: versesText.split(',').map(v => v.trim()).filter(Boolean), tags, existingNoteId };
-  }, [title, preacher, sermonDate, seriesTitle, isPublic, content, versesText, tags, existingNoteId]);
+    lastState.current = { title, preacher, sermonDate, seriesTitle, isPublic, content, verses: versesText.split(',').map(v => v.trim()).filter(Boolean), tags, localNoteId };
+  }, [title, preacher, sermonDate, seriesTitle, isPublic, content, versesText, tags, localNoteId]);
 
   // Load existing note or user profile
   useEffect(() => {
@@ -118,15 +121,12 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
         imageUrls: [] // Required by schema
       };
 
-      if (state.existingNoteId) {
-        updateNote(state.existingNoteId, payload).catch(console.error);
-      } else {
-        addNote(payload).then(ref => {
-          if (onNoteCreated) onNoteCreated(ref.id);
-        }).catch(console.error);
-      }
+      // Always explicitly save using local determinisic ID
+      addNote(payload, state.localNoteId).then(ref => {
+        if (!existingNoteId && onNoteCreated) onNoteCreated(ref.id);
+      }).catch(console.error);
     };
-  }, [addNote, updateNote]);
+  }, [addNote, existingNoteId, onNoteCreated]);
 
   const handleDelete = async () => {
     if (!existingNoteId) return;
@@ -155,12 +155,12 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
         imageUrls: [] 
       };
 
-      if (existingNoteId) {
-        await updateNote(existingNoteId, noteData);
-      } else {
-        const ref = await addNote(noteData);
-        if (onNoteCreated) onNoteCreated(ref.id);
+      if (!existingNoteId) {
+        if (onNoteCreated) onNoteCreated(localNoteId);
       }
+      
+      await addNote(noteData, localNoteId);
+      
       if (onSaved) onSaved();
       isDirty.current = false;
     } catch (err) {

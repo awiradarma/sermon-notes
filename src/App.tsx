@@ -51,6 +51,7 @@ import { LogOut } from 'lucide-react';function AppContent() {
             <h3 className="text-lg font-semibold mb-4 text-foreground border-b pb-2">Account</h3>
             <div className="flex justify-between items-center mb-6">
               <p className="text-muted-foreground text-sm">Valid profile: <br/><span className="text-foreground font-medium text-base">{user.email}</span></p>
+              <p className="text-muted-foreground text-sm text-right">App Version: <br/><span className="text-foreground font-medium text-base">v{import.meta.env.VITE_APP_VERSION || "1.0.0"}</span></p>
             </div>
             
             <button 

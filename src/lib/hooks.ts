@@ -3,7 +3,7 @@ import { db } from './firebase';
 import { 
   collection, doc, setDoc, getDoc, updateDoc, deleteDoc, 
   query, where, orderBy, onSnapshot, serverTimestamp, 
-  Timestamp, addDoc
+  Timestamp
 } from 'firebase/firestore';
 import { useAuth } from '../components/auth/AuthProvider';
 import type { Note, UserProfile } from './types';
@@ -87,7 +87,9 @@ export function useNotes() {
     return unsubscribe;
   }, [user]);
 
-  const addNote = useCallback(async (note: Omit<Note, 'docId' | 'userId' | 'updatedAt' | 'heartCount'>) => {
+  const generateNoteId = useCallback(() => doc(collection(db, 'notes')).id, []);
+
+  const addNote = useCallback(async (note: Omit<Note, 'docId' | 'userId' | 'updatedAt' | 'heartCount'>, explicitDocId?: string) => {
     if (!user) throw new Error("Must be logged in");
     
     // Attempt saving preacher to known list automatically
@@ -95,13 +97,18 @@ export function useNotes() {
       saveMetadataToProfile(user.uid, note.preacher, note.tags).catch(console.error);
     }
     
-    return await addDoc(collection(db, 'notes'), {
+    const newDocId = explicitDocId || doc(collection(db, 'notes')).id;
+    const ref = doc(db, 'notes', newDocId);
+    
+    await setDoc(ref, {
       ...note,
       userId: user.uid,
       heartCount: 0,
       updatedAt: serverTimestamp(),
       sermonDate: Timestamp.fromDate(note.sermonDate)
-    });
+    }, { merge: true });
+    
+    return ref;
   }, [user]);
 
   const updateNote = useCallback(async (docId: string, updates: Partial<Note>) => {
@@ -117,7 +124,7 @@ export function useNotes() {
       payload.sermonDate = Timestamp.fromDate(updates.sermonDate as Date);
     }
     
-    return await updateDoc(ref, payload);
+    return await setDoc(ref, payload, { merge: true });
   }, [user]);
 
   const removeNote = useCallback(async (docId: string) => {
@@ -125,7 +132,7 @@ export function useNotes() {
     return await deleteDoc(doc(db, 'notes', docId));
   }, [user]);
 
-  return { notes, loading, addNote, updateNote, removeNote };
+  return { notes, loading, generateNoteId, addNote, updateNote, removeNote };
 }
 
 export const saveMetadataToProfile = async (userId: string, preacherName?: string, tags?: string[]) => {
