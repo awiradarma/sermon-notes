@@ -39,7 +39,7 @@ export function CommunityFeed() {
       let g = 'Uncategorized';
       if (groupBy === 'month') {
         const d = n.sermonDate;
-        g = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+        g = d.toLocaleString('default', { month: 'long', year: 'numeric', timeZone: 'UTC' });
       } else if (groupBy === 'series') {
         g = n.seriesTitle || 'Uncategorized';
       } else if (groupBy === 'preacher') {
@@ -92,7 +92,7 @@ export function CommunityFeed() {
         <h3 className="font-bold text-lg text-foreground line-clamp-2 leading-tight">{note.title}</h3>
         
         <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground font-medium border-b border-border pb-3">
-          <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {note.sermonDate.toLocaleDateString()}</span>
+          <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {note.sermonDate.toLocaleDateString('default', { timeZone: 'UTC' })}</span>
           {note.preacher && <span className="flex items-center gap-1.5"><User className="w-3.5 h-3.5" /> {note.preacher}</span>}
         </div>
 
@@ -204,7 +204,7 @@ export function CommunityFeed() {
             
             <div className="flex-1 overflow-y-auto p-6">
               <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-foreground font-medium border-b border-border pb-4 mb-6">
-                <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> {viewingNote.sermonDate.toLocaleDateString()}</span>
+                <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> {viewingNote.sermonDate.toLocaleDateString('default', { timeZone: 'UTC' })}</span>
                 {viewingNote.preacher && <span className="flex items-center gap-1.5"><User className="w-4 h-4" /> {viewingNote.preacher}</span>}
               </div>
               <div 
