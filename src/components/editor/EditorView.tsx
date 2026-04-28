@@ -41,7 +41,7 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
       return;
     }
     isDirty.current = true;
-  }, [title, preacher, sermonDate, seriesTitle, versesText, tags, content, isPublic, loading]);
+  }, [title, preacher, sermonDate, seriesTitle, versesText, tags, content, isPublic, loading, fetchedVerses]);
   
   // UI state
   const [isSaving, setIsSaving] = useState(false);
