@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { useNotes, fetchUserProfile } from '../../lib/hooks';
+import { fetchBibleText } from '../../lib/bibleApi';
 import { TipTapEditor } from './TipTapEditor';
 import { BIBLE_BOOKS } from '../../lib/bibleBooks';
-import { Save, Calendar, User, Book as BookIcon, Hash, FolderOpen, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
+import { Save, Calendar, User, Book as BookIcon, Hash, FolderOpen, ChevronUp, ChevronDown, Trash2, RefreshCw } from 'lucide-react';
 
 export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existingNoteId?: string, onSaved?: () => void, onNoteCreated?: (id: string) => void }) {
   const { user } = useAuth();
@@ -18,13 +19,20 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
   // Note state
   const [title, setTitle] = useState('');
   const [preacher, setPreacher] = useState('');
-  const [sermonDate, setSermonDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [sermonDate, setSermonDate] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  });
   const [seriesTitle, setSeriesTitle] = useState('');
   const [versesText, setVersesText] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [content, setContent] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   
+  const [fetchedVerses, setFetchedVerses] = useState<string | null>(null);
+  const [scriptureRefLoaded, setScriptureRefLoaded] = useState('');
+  const [isVersesCollapsed, setIsVersesCollapsed] = useState(false);
+
   // Track changes for auto-save
   useEffect(() => {
     if (loading) return;
@@ -44,11 +52,11 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
   const isInitialLoad = useRef(true);
   
   // Refs for auto-save (to avoid stale closures on unmount)
-  const lastState = useRef({ title, preacher, sermonDate, seriesTitle, isPublic, content, verses: versesText.split(',').map(v => v.trim()).filter(Boolean), tags, localNoteId });
+  const lastState = useRef({ title, preacher, sermonDate, seriesTitle, isPublic, content, verses: versesText.split(',').map(v => v.trim()).filter(Boolean), tags, localNoteId, fetchedVerses });
   
   useEffect(() => {
-    lastState.current = { title, preacher, sermonDate, seriesTitle, isPublic, content, verses: versesText.split(',').map(v => v.trim()).filter(Boolean), tags, localNoteId };
-  }, [title, preacher, sermonDate, seriesTitle, isPublic, content, versesText, tags, localNoteId]);
+    lastState.current = { title, preacher, sermonDate, seriesTitle, isPublic, content, verses: versesText.split(',').map(v => v.trim()).filter(Boolean), tags, localNoteId, fetchedVerses };
+  }, [title, preacher, sermonDate, seriesTitle, isPublic, content, versesText, tags, localNoteId, fetchedVerses]);
 
   // Load existing note or user profile
   useEffect(() => {
@@ -68,12 +76,21 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
       if (note) {
         setTitle(note.title);
         setPreacher(note.preacher);
-        setSermonDate(note.sermonDate.toISOString().split('T')[0]);
+        setSermonDate(`${note.sermonDate.getFullYear()}-${String(note.sermonDate.getMonth()+1).padStart(2, '0')}-${String(note.sermonDate.getDate()).padStart(2, '0')}`);
         setSeriesTitle(note.seriesTitle || '');
         setVersesText(note.verses.join(', '));
         setTags(note.tags);
         setContent(note.content);
         setIsPublic(note.isPublic);
+        
+        // Lock the initial loaded reference so we don't auto-fetch Old notes
+        setScriptureRefLoaded(note.verses.join(', '));
+        if (note.scriptureContent) {
+          setFetchedVerses(note.scriptureContent);
+        } else if (note.verses.length > 0) {
+          // It had verses but no scripture Content saved. 
+          setFetchedVerses(null);
+        }
       }
       setLoading(false);
     } else if (!existingNoteId) {
@@ -96,6 +113,34 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
     }
   }, [versesText]);
 
+  // Debounced Verse Fetching for Editor
+  const handleManualFetch = async () => {
+    const versesArr = versesText.split(',').map(v => v.trim()).filter(Boolean);
+    if (versesArr.length === 0) return;
+    setFetchedVerses('Loading...');
+    const text = await fetchBibleText(versesArr.join('; '));
+    setFetchedVerses(text);
+    setScriptureRefLoaded(''); // allow future debounces
+  };
+
+  useEffect(() => {
+    const versesArr = versesText.split(',').map(v => v.trim()).filter(Boolean);
+    if (versesArr.length === 0) {
+      setFetchedVerses(null);
+      return;
+    }
+    
+    // Skip auto-fetch if we just loaded this exact reference from database (preserves old translations)
+    if (versesText === scriptureRefLoaded) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      fetchBibleText(versesArr.join('; ')).then(text => setFetchedVerses(text));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [versesText, scriptureRefLoaded]);
+
   // Scroll handler for distraction free
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     if (e.currentTarget.scrollTop > 100 && !isHeaderCollapsed && !isHeaderFocused) {
@@ -113,11 +158,13 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
       const payload = {
         title: state.title,
         preacher: state.preacher,
-        sermonDate: new Date(state.sermonDate),
+        sermonDate: new Date(Number(state.sermonDate.split('-')[0]), Number(state.sermonDate.split('-')[1]) - 1, Number(state.sermonDate.split('-')[2]), 12, 0, 0),
         seriesTitle: state.seriesTitle,
         isPublic: state.isPublic,
         content: state.content,
         verses: state.verses,
+        scriptureContent: state.fetchedVerses || undefined,
+        bibleVersion: localStorage.getItem('preferredBibleId') || undefined,
         tags: state.tags,
         imageUrls: [] // Required by schema
       };
@@ -147,12 +194,14 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
       const noteData = {
         title,
         preacher,
-        sermonDate: new Date(sermonDate),
+        sermonDate: new Date(Number(sermonDate.split('-')[0]), Number(sermonDate.split('-')[1]) - 1, Number(sermonDate.split('-')[2]), 12, 0, 0),
         seriesTitle,
         verses: versesText.split(',').map(v => v.trim()).filter(Boolean),
         tags,
         content,
         isPublic,
+        scriptureContent: fetchedVerses || undefined,
+        bibleVersion: localStorage.getItem('preferredBibleId') || undefined,
         imageUrls: [] 
       };
 
@@ -244,6 +293,14 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
               <datalist id="bible-books-list">
                 {BIBLE_BOOKS.map(b => <option key={b} value={b} />)}
               </datalist>
+              <button 
+                type="button"
+                className="p-1 hover:bg-muted-foreground/10 rounded transition-colors" 
+                title="Fetch Scripture"
+                onClick={handleManualFetch}
+              >
+                <RefreshCw className="w-4 h-4 text-muted-foreground hover:text-primary" />
+              </button>
             </div>
           </div>
 
@@ -321,6 +378,25 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
             {isHeaderCollapsed ? <><ChevronDown className="w-3.5 h-3.5" /> Show Sermon Details</> : <><ChevronUp className="w-3.5 h-3.5" /> Hide Sermon Details</>}
           </button>
         </div>
+
+        {fetchedVerses && (
+          <div className="mb-6 bg-card border border-border rounded-xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-top-2">
+            <button 
+              onClick={() => setIsVersesCollapsed(!isVersesCollapsed)}
+              className="w-full flex items-center justify-between p-3 bg-muted/40 hover:bg-muted text-sm font-semibold transition-colors border-b border-transparent"
+            >
+              <div className="flex items-center gap-2">
+                <BookIcon className="w-4 h-4 text-primary" />
+                Scripture Reference (WEB)
+              </div>
+              {isVersesCollapsed ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronUp className="w-4 h-4 text-muted-foreground" />}
+            </button>
+            {!isVersesCollapsed && (
+              <div className="p-4 prose dark:prose-invert prose-sm max-w-none text-muted-foreground bg-background/50 border-t border-border max-h-[40vh] overflow-y-auto" dangerouslySetInnerHTML={{ __html: fetchedVerses }} />
+            )}
+          </div>
+        )}
+
         <TipTapEditor content={content} onChange={setContent} />
       </div>
     </div>

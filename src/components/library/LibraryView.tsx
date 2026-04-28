@@ -29,7 +29,7 @@ export function LibraryView({ onEditNote }: { onEditNote: (noteId: string) => vo
       let g = 'Uncategorized';
       if (groupBy === 'month') {
         const d = n.sermonDate;
-        g = d.toLocaleString('default', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+        g = d.toLocaleString('default', { month: 'long', year: 'numeric' });
       } else if (groupBy === 'series') {
         g = n.seriesTitle || 'Uncategorized';
       } else if (groupBy === 'preacher') {
@@ -121,7 +121,7 @@ export function LibraryView({ onEditNote }: { onEditNote: (noteId: string) => vo
         </div>
         
         <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground font-medium">
-          <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {note.sermonDate.toLocaleDateString('default', { timeZone: 'UTC' })}</span>
+          <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {note.sermonDate.toLocaleDateString('default')}</span>
           {note.preacher && <span className="flex items-center gap-1.5"><User className="w-3.5 h-3.5" /> {note.preacher}</span>}
           {note.seriesTitle && <span className="flex items-center gap-1.5"><FolderOpen className="w-3.5 h-3.5" /> {note.seriesTitle}</span>}
         </div>

@@ -1,4 +1,4 @@
-import { BookOpen, Home, Settings, PenSquare, Users, Network } from "lucide-react"
+import { BookOpen, Home, Settings, PenSquare, Users, Network, LineChart } from "lucide-react"
 import { useTheme } from "../theme-provider"
 import { SyncIndicator } from "../common/SyncIndicator"
 
@@ -42,6 +42,12 @@ export function AppShell({
             className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 'community' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
           >
             <Users className="w-4 h-4" /> Community
+          </button>
+          <button 
+            onClick={() => setActiveTab('insights')}
+            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 'insights' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+          >
+            <LineChart className="w-4 h-4" /> Insights
           </button>
           <button 
             onClick={() => setActiveTab('settings')}
@@ -95,7 +101,17 @@ export function AppShell({
             className={`flex flex-col items-center gap-1 p-2 flex-1 ${activeTab === 'community' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
           >
             <Users className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Community</span>
+            <span className="text-[10px] font-medium hidden sm:block">Community</span>
+            <span className="text-[10px] font-medium sm:hidden">Comm.</span>
+          </button>
+
+          <button 
+            onClick={() => setActiveTab('insights')}
+            className={`flex flex-col items-center gap-1 p-2 flex-1 ${activeTab === 'insights' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <LineChart className="w-5 h-5" />
+            <span className="text-[10px] font-medium hidden sm:block">Insights</span>
+            <span className="text-[10px] font-medium sm:hidden">Stats</span>
           </button>
 
           <button 
