@@ -119,7 +119,7 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
     if (versesArr.length === 0) return;
     setFetchedVerses('Loading...');
     const text = await fetchBibleText(versesArr.join('; '));
-    setFetchedVerses(text);
+    setFetchedVerses(text || '<i>Failed to load scripture. Check API key.</i>');
     setScriptureRefLoaded(''); // allow future debounces
   };
 
@@ -136,7 +136,9 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
     }
 
     const timer = setTimeout(() => {
-      fetchBibleText(versesArr.join('; ')).then(text => setFetchedVerses(text));
+      fetchBibleText(versesArr.join('; ')).then(text => {
+        setFetchedVerses(text || '<i>Failed to load scripture. Check API key.</i>');
+      });
     }, 1000);
     return () => clearTimeout(timer);
   }, [versesText, scriptureRefLoaded]);
@@ -163,8 +165,8 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
         isPublic: state.isPublic,
         content: state.content,
         verses: state.verses,
-        scriptureContent: state.fetchedVerses || undefined,
-        bibleVersion: localStorage.getItem('preferredBibleId') || undefined,
+        scriptureContent: state.fetchedVerses || null,
+        bibleVersion: localStorage.getItem('preferredBibleId') || null,
         tags: state.tags,
         imageUrls: [] // Required by schema
       };
@@ -200,8 +202,8 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
         tags,
         content,
         isPublic,
-        scriptureContent: fetchedVerses || undefined,
-        bibleVersion: localStorage.getItem('preferredBibleId') || undefined,
+        scriptureContent: fetchedVerses || null,
+        bibleVersion: localStorage.getItem('preferredBibleId') || null,
         imageUrls: [] 
       };
 

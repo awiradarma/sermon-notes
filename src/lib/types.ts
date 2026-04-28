@@ -8,8 +8,8 @@ export interface Note {
   tags: string[];
   seriesTitle?: string;
   content: string;
-  scriptureContent?: string;
-  bibleVersion?: string;
+  scriptureContent?: string | null;
+  bibleVersion?: string | null;
   isPublic: boolean;
   heartCount: number;
   imageUrls: string[];
