@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react"
 import { BookOpen, Home, Settings, PenSquare, Users, Network, LineChart } from "lucide-react"
 import { useTheme } from "../theme-provider"
 import { SyncIndicator } from "../common/SyncIndicator"
@@ -12,6 +13,20 @@ export function AppShell({
   setActiveTab?: (tab: string) => void 
 }) {
   const { theme, setTheme } = useTheme()
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false)
+
+  useEffect(() => {
+    if (!window.visualViewport) return
+
+    const handleResize = () => {
+      // If viewport height is significantly less than the innerHeight, keyboard is likely up
+      const isVisible = window.visualViewport!.height < window.innerHeight * 0.85
+      setIsKeyboardVisible(isVisible)
+    }
+
+    window.visualViewport.addEventListener('resize', handleResize)
+    return () => window.visualViewport?.removeEventListener('resize', handleResize)
+  }, [])
 
   return (
     <div className="flex flex-col h-[100dvh] overflow-hidden bg-background text-foreground">
@@ -86,7 +101,7 @@ export function AppShell({
       </main>
 
       {/* Bottom Bar for Mobile */}
-      <nav className="md:hidden fixed bottom-0 w-full border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
+      <nav className={`md:hidden fixed bottom-0 w-full border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 transition-transform duration-300 ${isKeyboardVisible ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}`}>
         <div className="flex justify-around items-center h-16 pb-safe">
           <button 
             onClick={() => setActiveTab('home')}
