@@ -16,7 +16,7 @@ export async function fetchBibleText(query: string): Promise<string | null> {
     const savedBibleId = localStorage.getItem('preferredBibleId');
     const bibleId = savedBibleId || defaultBibleId; 
     
-    const url = `https://api.scripture.api.bible/v1/bibles/${bibleId}/search?query=${encodeURIComponent(query)}`;
+    const url = `https://rest.api.bible/v1/bibles/${bibleId}/search?query=${encodeURIComponent(query)}`;
     const res = await fetch(url, {
       headers: {
         'api-key': apiKey
