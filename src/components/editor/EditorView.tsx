@@ -32,6 +32,7 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
   const [fetchedVerses, setFetchedVerses] = useState<string | null>(null);
   const [scriptureRefLoaded, setScriptureRefLoaded] = useState('');
   const [isVersesCollapsed, setIsVersesCollapsed] = useState(false);
+  const [currentBibleId, setCurrentBibleId] = useState<string>(() => localStorage.getItem('preferredBibleId') || '9879dbb7cfe39e4d-01');
 
   // Track changes for auto-save
   useEffect(() => {
@@ -87,6 +88,7 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
         setScriptureRefLoaded(note.verses.join(', '));
         if (note.scriptureContent) {
           setFetchedVerses(note.scriptureContent);
+          if (note.bibleVersion) setCurrentBibleId(note.bibleVersion);
         } else if (note.verses.length > 0) {
           // It had verses but no scripture Content saved. 
           setFetchedVerses(null);
@@ -120,6 +122,7 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
     setFetchedVerses('Loading...');
     const text = await fetchBibleText(versesArr.join('; '));
     setFetchedVerses(text || '<i>Failed to load scripture. Check API key.</i>');
+    setCurrentBibleId(localStorage.getItem('preferredBibleId') || '9879dbb7cfe39e4d-01');
     setScriptureRefLoaded(''); // allow future debounces
   };
 
@@ -138,6 +141,7 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
     const timer = setTimeout(() => {
       fetchBibleText(versesArr.join('; ')).then(text => {
         setFetchedVerses(text || '<i>Failed to load scripture. Check API key.</i>');
+        setCurrentBibleId(localStorage.getItem('preferredBibleId') || '9879dbb7cfe39e4d-01');
       });
     }, 1000);
     return () => clearTimeout(timer);
@@ -203,7 +207,7 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
         content,
         isPublic,
         scriptureContent: fetchedVerses || null,
-        bibleVersion: localStorage.getItem('preferredBibleId') || null,
+        bibleVersion: currentBibleId || null,
         imageUrls: [] 
       };
 
@@ -389,7 +393,7 @@ export function EditorView({ existingNoteId, onSaved, onNoteCreated }: { existin
             >
               <div className="flex items-center gap-2">
                 <BookIcon className="w-4 h-4 text-primary" />
-                Scripture Reference (WEB)
+                Scripture Reference ({currentBibleId === '06125adad2d5898a-01' ? 'ASV' : currentBibleId === 'de4e12af7f28f599-01' ? 'KJV' : 'WEB'})
               </div>
               {isVersesCollapsed ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronUp className="w-4 h-4 text-muted-foreground" />}
             </button>
