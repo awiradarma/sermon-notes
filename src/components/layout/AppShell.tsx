@@ -16,16 +16,53 @@ export function AppShell({
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false)
 
   useEffect(() => {
-    if (!window.visualViewport) return
+    const handleFocus = () => {
+      const activeEl = document.activeElement;
+      if (activeEl && (
+        activeEl.tagName === 'INPUT' || 
+        activeEl.tagName === 'TEXTAREA' || 
+        (activeEl as HTMLElement).contentEditable === 'true'
+      )) {
+        setIsKeyboardVisible(true);
+      }
+    };
+
+    const handleBlur = () => {
+      // Small timeout to prevent flicker when moving between inputs
+      setTimeout(() => {
+        const activeEl = document.activeElement;
+        if (!(activeEl && (
+          activeEl.tagName === 'INPUT' || 
+          activeEl.tagName === 'TEXTAREA' || 
+          (activeEl as HTMLElement).contentEditable === 'true'
+        ))) {
+          setIsKeyboardVisible(false);
+        }
+      }, 100);
+    };
+
+    document.addEventListener('focusin', handleFocus);
+    document.addEventListener('focusout', handleBlur);
+
+    if (!window.visualViewport) {
+      return () => {
+        document.removeEventListener('focusin', handleFocus);
+        document.removeEventListener('focusout', handleBlur);
+      };
+    }
 
     const handleResize = () => {
-      // If viewport height is significantly less than the innerHeight, keyboard is likely up
       const isVisible = window.visualViewport!.height < window.innerHeight * 0.85
-      setIsKeyboardVisible(isVisible)
+      // If the viewport shrinks significantly, it's a strong signal even without focus
+      if (isVisible) setIsKeyboardVisible(true);
     }
 
     window.visualViewport.addEventListener('resize', handleResize)
-    return () => window.visualViewport?.removeEventListener('resize', handleResize)
+    return () => {
+      document.removeEventListener('focusin', handleFocus);
+      document.removeEventListener('focusout', handleBlur);
+      window.visualViewport?.removeEventListener('resize', handleResize);
+    }
   }, [])
 
   return (
